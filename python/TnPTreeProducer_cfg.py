@@ -92,7 +92,7 @@ options['isMC']                 = varOptions.isMC
 options['UseCalibEn']           = varOptions.calibEn
 options['addSUSY']              = varOptions.includeSUSY and not options['useAOD']
 
-options['OUTPUT_FILE_NAME']     = "TnPTree_%s.root" % ("mc" if options['isMC'] else "data")
+options['OUTPUT_FILE_NAME']     = varOptions.outputFile #"TnPTree_%s.root" % ("mc" if options['isMC'] else "data")
 
 log.info('outputfile: %s' % options['OUTPUT_FILE_NAME'])
 
@@ -215,7 +215,8 @@ importTestFiles = 'from EgammaAnalysis.TnPTreeProducer.etc.tnpInputTestFiles_cff
 exec(importTestFiles)
 
 options['INPUT_FILE_NAME'] = inputs['mc' if options['isMC'] else 'data']
-
+print(options["INPUT_FILE_NAME"], varOptions.inputFiles)
+options['INPUT_FILE_NAME'] = cms.untracked.vstring(varOptions.inputFiles[0])
 ###################################################################
 ## Standard imports, GT and pile-up
 ###################################################################
@@ -234,6 +235,21 @@ process.GlobalTag = GlobalTag(process.GlobalTag, options['GLOBALTAG'] , '')
 
 import EgammaAnalysis.TnPTreeProducer.pileupConfiguration_cff as pileUpSetup
 pileUpSetup.setPileUpConfiguration(process, options)
+
+import FWCore.PythonUtilities.LumiList as LumiList
+def getLumiMask(era):
+  if   era=='2016':   return 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt'
+  elif era=='2017':   return 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt'
+  elif era=='2018':   return 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/PromptReco/Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.txt'
+  elif era=='UL2016preVFP': return 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt'
+  elif era=='UL2016postVFP': return 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt'
+  elif era=='UL2017': return 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt'
+  elif era=='UL2018': return 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/PromptReco/Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.txt'
+  elif era=='2022': return 'https://cms-service-dqmdc.web.cern.ch/CAF/certification/Collisions22/Cert_Collisions2022_355100_362760_Golden.json'
+  elif era=='2023': return 'https://cms-service-dqmdc.web.cern.ch/CAF/certification/Collisions23/Cert_Collisions2023_366442_370790_Golden.json'
+  elif era=='2024': return 'https://cms-service-dqmdc.web.cern.ch/CAF/certification/Collisions24/2024I_Golden.json'
+  elif era=='2025': return 'https://cms-service-dqmdc.web.cern.ch/CAF/certification/Collisions25/DCSOnly_JSONS/dailyDCSOnlyJSON/Collisions25_13p6TeV_Latest.json'
+
 
 
 ###################################################################
@@ -266,6 +282,8 @@ process.MessageLogger.cerr.threshold = ''
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 process.source = cms.Source("PoolSource", fileNames = options['INPUT_FILE_NAME'])
+process.source.lumisToProcess = LumiList.LumiList(url=getLumiMask(options['era'])).getVLuminosityBlockRange()
+
 process.maxEvents = cms.untracked.PSet( input = options['MAXEVENTS'])
 
 

@@ -215,7 +215,7 @@ def setupTreeMaker(process, options) :
 
     setTagsProbes( process, options )
     setSequences(  process, options )
-
+    print(options['HLTProcessName'])
 
 def customize( tnpTree, options ):
     tnpTree.arbitration = cms.string("HighestPt")
