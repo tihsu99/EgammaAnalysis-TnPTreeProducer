@@ -8,6 +8,6 @@
   <class name="edm::RefProd<std::vector<reco::LeafCandidate> >"/>
   <class name="edm::Wrapper<edm::RefProd<std::vector<reco::LeafCandidate> > >"/>
 
-  <class name="edm::RefVector<std::vector<reco::LeafCandidate> >"/>
-  <class name="edm::Wrapper<edm::RefVector<std::vector<reco::LeafCandidate> > >"/>
+  <class name="edm::RefVector<std::vector<reco::LeafCandidate>,reco::LeafCandidate,edm::refhelper::FindUsingAdvance<std::vector<reco::LeafCandidate>,reco::LeafCandidate> >"/>
+  <class name="edm::Wrapper<edm::RefVector<std::vector<reco::LeafCandidate>,reco::LeafCandidate,edm::refhelper::FindUsingAdvance<std::vector<reco::LeafCandidate>,reco::LeafCandidate> > >"/>
 </lcgdict>
