@@ -105,6 +105,37 @@ def setGoodParticlesMiniAOD(process, options):
         process.goodSuperClusters 
         )
 
+
+###################################################################################
+################  --- GOOD particles Scouting
+###################################################################################
+def setGoodParticlesScouting(process, options):
+
+    process.scoutingElectrons = cms.EDProducer("ScoutingElectronToCandidateProducer",
+                                               src = cms.InputTag(options['ELECTRON_COLL'])
+                                               )
+    process.scoutingPhotons = cms.EDProducer("ScoutingPhotonToCandidateProducer",
+                                             src = cms.InputTag(options['PHOTON_COLL'])
+                                             )
+
+    process.eleVarHelper = cms.EDProducer("ScoutingElectronVariableHelper",
+                                          src              = cms.InputTag(options['ELECTRON_COLL']),
+                                          probes           = cms.InputTag("scoutingElectrons"),
+                                          vertexCollection = cms.InputTag(options['SCOUTING_VERTEX_COLL']),
+                                          rhoInputTag      = cms.InputTag(options['SCOUTING_RHO'])
+                                          )
+
+    process.goodElectrons = cms.EDProducer("TnPLeafCandidateRefSelector",
+                                           src = cms.InputTag("scoutingElectrons"),
+                                           cut = cms.string(options['ELECTRON_CUTS'])
+                                           )
+
+    process.goodPhotons = cms.EDProducer("TnPLeafCandidateRefSelector",
+                                         src = cms.InputTag("scoutingPhotons"),
+                                         cut = cms.string(options['PHOTON_CUTS'])
+                                         )
+    process.sc_sequenceScouting = cms.Sequence()
+
 ###################################################################################
 ################  --- GOOD particles AOD
 ################################################################################### 

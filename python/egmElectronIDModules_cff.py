@@ -9,6 +9,19 @@ from EgammaAnalysis.TnPTreeProducer.cmssw_version import isReleaseAbove
 
 def setIDs(process, options):
 
+    if options.get('USE_SCOUTING_OBJECTS', False):
+        process.tagEleCutBasedTight = cms.EDProducer('TnPLeafCandidateRefSelector',
+                                                     src = cms.InputTag("scoutingElectrons"),
+                                                     cut = cms.string(options['ELECTRON_TAG_CUTS'])
+                                                )
+        process.probeEleScoutingPlaceholderWP = cms.EDProducer(
+            'TnPLeafCandidateRefSelector',
+            src = cms.InputTag("scoutingElectrons"),
+            # Placeholder scouting WP. Replace this cut with the desired scouting ID recipe.
+            cut = cms.string("pt >= 0")
+        )
+        return cms.Sequence(process.probeEleScoutingPlaceholderWP)
+
     switchOnVIDElectronIdProducer(process, DataFormat.AOD if options['useAOD'] else DataFormat.MiniAOD)
 
     # define which IDs we want to produce

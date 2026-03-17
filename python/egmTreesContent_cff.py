@@ -273,6 +273,69 @@ CommonStuffForPhotonProbe.variables = cms.PSet(PhoProbeVariablesToStore)
 CommonStuffForSuperClusterProbe = CommonStuffForGsfElectronProbe.clone()
 CommonStuffForSuperClusterProbe.variables = cms.PSet(SCProbeVariablesToStore)
 
+ScoutingEleProbeVariablesToStore = cms.PSet(
+    el_eta    = cms.string("eta"),
+    el_phi    = cms.string("phi"),
+    el_abseta = cms.string("abs(eta)"),
+    el_pt     = cms.string("pt"),
+    el_e      = cms.string("energy"),
+    el_q      = cms.string("charge"),
+    el_dEtaIn = cms.InputTag("eleVarHelper:dEtaIn"),
+    el_dPhiIn = cms.InputTag("eleVarHelper:dPhiIn"),
+    el_sieie  = cms.InputTag("eleVarHelper:sigmaIetaIeta"),
+    el_hoe    = cms.InputTag("eleVarHelper:hOverE"),
+    el_ooemoop = cms.InputTag("eleVarHelper:ooEMOop"),
+    el_mHits  = cms.InputTag("eleVarHelper:missingHits"),
+    el_ecalIso = cms.InputTag("eleVarHelper:ecalIso"),
+    el_hcalIso = cms.InputTag("eleVarHelper:hcalIso"),
+    el_trkIso  = cms.InputTag("eleVarHelper:trackIso"),
+    el_r9      = cms.InputTag("eleVarHelper:r9"),
+    el_sMin    = cms.InputTag("eleVarHelper:sMin"),
+    el_dxy     = cms.InputTag("eleVarHelper:dxy"),
+    el_dz      = cms.InputTag("eleVarHelper:dz"),
+    el_sip     = cms.InputTag("eleVarHelper:sip"),
+)
+
+ScoutingTagVariablesToStore = cms.PSet(
+    Ele_eta    = cms.string("eta"),
+    Ele_phi    = cms.string("phi"),
+    Ele_abseta = cms.string("abs(eta)"),
+    Ele_pt     = cms.string("pt"),
+    Ele_e      = cms.string("energy"),
+    Ele_q      = cms.string("charge"),
+    Ele_dz     = cms.InputTag("eleVarHelper:dz"),
+    Ele_dxy    = cms.InputTag("eleVarHelper:dxy"),
+    Ele_sip    = cms.InputTag("eleVarHelper:sip"),
+)
+
+CommonStuffForScoutingElectronProbe = cms.PSet(
+    addEventVariablesInfo   = cms.bool(True),
+
+    variables        = cms.PSet(ScoutingEleProbeVariablesToStore),
+    pairVariables    = cms.PSet(ZVariablesToStore),
+    tagVariables     = cms.PSet(ScoutingTagVariablesToStore),
+
+    addRunLumiInfo   = cms.bool(True),
+    pileupInfoTag    = cms.InputTag("addPileupInfo"),
+    vertexCollection = cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"),
+    beamSpot         = cms.InputTag("offlineBeamSpot"),
+    addCaloMet       = cms.bool(False),
+    rho              = cms.InputTag("hltScoutingPFPacker", "rho"),
+
+    pairFlags     = cms.PSet(),
+    tagFlags      = cms.PSet(),
+)
+
+ScoutingPhoProbeVariablesToStore = cms.PSet(
+    ph_eta    = cms.string("eta"),
+    ph_abseta = cms.string("abs(eta)"),
+    ph_et     = cms.string("et"),
+    ph_e      = cms.string("energy"),
+)
+
+CommonStuffForScoutingPhotonProbe = CommonStuffForScoutingElectronProbe.clone()
+CommonStuffForScoutingPhotonProbe.variables = cms.PSet(ScoutingPhoProbeVariablesToStore)
+
 
 def getTnPVariablesForMCTruth(isMC=True):
     if isMC:

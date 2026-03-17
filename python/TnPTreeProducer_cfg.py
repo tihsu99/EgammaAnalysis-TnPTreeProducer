@@ -32,6 +32,14 @@ registerOption('HLTname',     'MYHLT',    'HLT process name', optionType=VarPars
 registerOption('GT',          'auto',   'Global Tag to be used', optionType=VarParsing.varType.string)
 registerOption('era',         '2018',   'Data-taking era: 2016, 2017, 2018, 2022, 2023, 2023preBPIX, 2023postBPIX, 2024, 2025, UL2017 or UL2018', optionType=VarParsing.varType.string)
 registerOption('logLevel',    'INFO',   'Loglevel: could be DEBUG, INFO, WARNING, ERROR', optionType=VarParsing.varType.string)
+registerOption('inputFormat',    'miniaod', 'Input format: miniaod, aod, hltscout', optionType=VarParsing.varType.string)
+registerOption('objectBackend',  'pat',     'Object backend: pat, gsf, scouting', optionType=VarParsing.varType.string)
+registerOption('triggerBackend', 'patTrigger', 'Trigger backend: patTrigger or triggerEvent', optionType=VarParsing.varType.string)
+registerOption('triggerObjectCollection', '', 'Override trigger object collection for the selected backend', optionType=VarParsing.varType.string)
+registerOption('scoutingElectronCollection', 'hltScoutingEgammaPacker', 'Scouting electron collection', optionType=VarParsing.varType.string)
+registerOption('scoutingPhotonCollection',   'hltScoutingEgammaPacker', 'Scouting photon collection', optionType=VarParsing.varType.string)
+registerOption('scoutingVertexCollection',   'hltScoutingPrimaryVertexPacker:primaryVtx', 'Scouting vertex collection', optionType=VarParsing.varType.string)
+registerOption('scoutingRho',                'hltScoutingPFPacker:rho', 'Scouting rho collection', optionType=VarParsing.varType.string)
 
 registerOption('L1Threshold',  0,       'Threshold for L1 matched objects', optionType=VarParsing.varType.int)
 
@@ -46,6 +54,22 @@ if varOptions.isAOD and varOptions.doEleID:    log.warning('AOD is not supported
 if varOptions.isAOD and varOptions.doPhoID:    log.warning('AOD is not supported for doPhoID, please consider using miniAOD')
 if varOptions.isAOD and varOptions.doTrigger:  log.warning('AOD is not supported for doTrigger, please consider using miniAOD')
 if not varOptions.isAOD and varOptions.doRECO: log.warning('miniAOD is not supported for doRECO, please consider using AOD')
+
+valid_input_formats = ['miniaod', 'aod', 'hltscout']
+valid_object_backends = ['pat', 'gsf', 'scouting']
+valid_trigger_backends = ['patTrigger', 'triggerEvent']
+if varOptions.inputFormat not in valid_input_formats:
+  log.error('%s is not a valid inputFormat' % varOptions.inputFormat)
+if varOptions.objectBackend not in valid_object_backends:
+  log.error('%s is not a valid objectBackend' % varOptions.objectBackend)
+if varOptions.triggerBackend not in valid_trigger_backends:
+  log.error('%s is not a valid triggerBackend' % varOptions.triggerBackend)
+if varOptions.objectBackend == 'scouting' and (varOptions.doEleID or varOptions.doPhoID or varOptions.doRECO):
+  log.warning('scouting backend currently supports doTrigger, doEleID, and doPhoID only; disabling doRECO')
+if varOptions.inputFormat == 'hltscout' and varOptions.objectBackend != 'scouting':
+  log.error('hltscout inputFormat requires objectBackend=scouting')
+if varOptions.inputFormat == 'hltscout' and varOptions.triggerBackend == 'patTrigger':
+  log.error('hltscout inputFormat requires triggerBackend=triggerEvent')
 
 from EgammaAnalysis.TnPTreeProducer.cmssw_version import isReleaseAbove
 if varOptions.era not in ['2016', '2017', '2018', '2022', '2023', '2023preBPIX', '2023postBPIX', '2024', '2025', 'UL2016preVFP', 'UL2016postVFP', 'UL2017', 'UL2018']: 
@@ -65,20 +89,47 @@ if varOptions.doRECO:      log.info('Producing RECO SF tree')
 ###################################################################
 
 options = dict()
-options['useAOD']               = varOptions.isAOD
+if varOptions.inputFormat == 'aod':
+  options['useAOD'] = True
+elif varOptions.inputFormat == 'miniaod':
+  options['useAOD'] = False
+else:
+  options['useAOD'] = False
 options['use80X']               = varOptions.is80X
+options['inputFormat']          = varOptions.inputFormat
+options['objectBackend']        = varOptions.objectBackend
+options['triggerBackend']       = varOptions.triggerBackend
+options['TRIGGER_OBJECT_COLL']  = varOptions.triggerObjectCollection
+options['USE_SCOUTING_OBJECTS'] = (varOptions.objectBackend == 'scouting')
 
 options['HLTProcessName']       = varOptions.HLTname
 options['era']                  = varOptions.era
+options['SCOUTING_ELECTRON_COLL'] = varOptions.scoutingElectronCollection
+options['SCOUTING_PHOTON_COLL']   = varOptions.scoutingPhotonCollection
+options['SCOUTING_VERTEX_COLL']   = varOptions.scoutingVertexCollection
+options['SCOUTING_RHO']           = varOptions.scoutingRho
 
-options['ELECTRON_COLL']        = "gedGsfElectrons" if options['useAOD'] else "slimmedElectrons"
-options['PHOTON_COLL']          = "gedPhotons" if options['useAOD'] else "slimmedPhotons"
+if options['objectBackend'] == 'gsf':
+  options['ELECTRON_COLL']      = "gedGsfElectrons"
+  options['PHOTON_COLL']        = "gedPhotons"
+elif options['objectBackend'] == 'pat':
+  options['ELECTRON_COLL']      = "slimmedElectrons"
+  options['PHOTON_COLL']        = "slimmedPhotons"
+else:
+  options['ELECTRON_COLL']      = options['SCOUTING_ELECTRON_COLL']
+  options['PHOTON_COLL']        = options['SCOUTING_PHOTON_COLL']
 options['SUPERCLUSTER_COLL']    = "reducedEgamma:reducedSuperClusters" ### not used in AOD
 
-options['ELECTRON_CUTS']        = "ecalEnergy*sin(superClusterPosition.theta)>5.0 &&  (abs(-log(tan(superClusterPosition.theta/2)))<2.5)"
-options['SUPERCLUSTER_CUTS']    = "abs(eta)<2.5 &&  et>5.0"
-options['PHOTON_CUTS']          = "(abs(-log(tan(superCluster.position.theta/2)))<=2.5) && pt> 10"
-options['ELECTRON_TAG_CUTS']    = "(abs(-log(tan(superCluster.position.theta/2)))<=2.5) && !(1.4442<=abs(-log(tan(superClusterPosition.theta/2)))<=1.566) && pt >= 30.0"
+if options['USE_SCOUTING_OBJECTS']:
+  options['ELECTRON_CUTS']      = "pt > 5.0 && abs(eta) < 2.5"
+  options['SUPERCLUSTER_CUTS']  = "abs(eta)<2.5 && et>5.0"
+  options['PHOTON_CUTS']        = "pt > 10.0 && abs(eta) < 2.5"
+  options['ELECTRON_TAG_CUTS']  = "pt >= 30.0 && abs(eta) < 2.5"
+else:
+  options['ELECTRON_CUTS']      = "ecalEnergy*sin(superClusterPosition.theta)>5.0 &&  (abs(-log(tan(superClusterPosition.theta/2)))<2.5)"
+  options['SUPERCLUSTER_CUTS']  = "abs(eta)<2.5 &&  et>5.0"
+  options['PHOTON_CUTS']        = "(abs(-log(tan(superCluster.position.theta/2)))<=2.5) && pt> 10"
+  options['ELECTRON_TAG_CUTS']  = "(abs(-log(tan(superCluster.position.theta/2)))<=2.5) && !(1.4442<=abs(-log(tan(superClusterPosition.theta/2)))<=1.566) && pt >= 30.0"
 
 options['MAXEVENTS']            = cms.untracked.int32(varOptions.maxEvents)
 #options['MAXEVENTS']            = cms.untracked.int32(1000)
@@ -86,11 +137,16 @@ options['DoTrigger']            = varOptions.doTrigger
 options['DoRECO']               = varOptions.doRECO
 options['DoEleID']              = varOptions.doEleID
 options['DoPhoID']              = varOptions.doPhoID
+if options['USE_SCOUTING_OBJECTS']:
+  options['DoRECO']             = False
 
 options['DEBUG']                = False 
 options['isMC']                 = varOptions.isMC
 options['UseCalibEn']           = varOptions.calibEn
-options['addSUSY']              = varOptions.includeSUSY and not options['useAOD']
+options['addSUSY']              = varOptions.includeSUSY and not options['useAOD'] and not options['USE_SCOUTING_OBJECTS']
+if options['USE_SCOUTING_OBJECTS'] and options['UseCalibEn']:
+  log.warning('scouting backend does not support calibEn; disabling it')
+  options['UseCalibEn'] = False
 
 options['OUTPUT_FILE_NAME']     = "TnPTree_%s.root" % ("mc" if options['isMC'] else "data")
 
@@ -204,17 +260,19 @@ else:#Run-3
   options['HLTFILTERSTOMEASURE'].update(doubleEle33_leg2_allFilters)
 
 # Apply L1 matching (using L1Threshold) when flag contains "L1match" in name
-options['ApplyL1Matching']      = any(['L1match' in flag for flag in options['HLTFILTERSTOMEASURE'].keys()])
+options['ApplyL1Matching']      = False if options['USE_SCOUTING_OBJECTS'] else any(['L1match' in flag for flag in options['HLTFILTERSTOMEASURE'].keys()])
 options['L1Threshold']          = varOptions.L1Threshold
 
 
 ###################################################################
 ## Define input files for test local run
 ###################################################################
-importTestFiles = 'from EgammaAnalysis.TnPTreeProducer.etc.tnpInputTestFiles_cff import files%s_%s as inputs' % ('AOD' if options['useAOD'] else 'MiniAOD', options['era'])
-exec(importTestFiles)
-
-options['INPUT_FILE_NAME'] = inputs['mc' if options['isMC'] else 'data']
+if options['inputFormat'] == 'hltscout':
+  options['INPUT_FILE_NAME'] = varOptions.inputFiles
+else:
+  importTestFiles = 'from EgammaAnalysis.TnPTreeProducer.etc.tnpInputTestFiles_cff import files%s_%s as inputs' % ('AOD' if options['useAOD'] else 'MiniAOD', options['era'])
+  exec(importTestFiles)
+  options['INPUT_FILE_NAME'] = inputs['mc' if options['isMC'] else 'data'] if len(varOptions.inputFiles) == 0 else varOptions.inputFiles
 
 ###################################################################
 ## Standard imports, GT and pile-up
@@ -241,6 +299,9 @@ pileUpSetup.setPileUpConfiguration(process, options)
 ###################################################################
 import EgammaAnalysis.TnPTreeProducer.egmTreesContent_cff as tnpVars
 if options['useAOD']: tnpVars.setupTnPVariablesForAOD()
+if options['USE_SCOUTING_OBJECTS']:
+  tnpVars.CommonStuffForScoutingElectronProbe.vertexCollection = cms.InputTag(options['SCOUTING_VERTEX_COLL'])
+  tnpVars.CommonStuffForScoutingElectronProbe.rho = cms.InputTag(options['SCOUTING_RHO'])
 mcTruthCommonStuff = tnpVars.getTnPVariablesForMCTruth(options['isMC'])
 
 ###################################################################
@@ -253,7 +314,7 @@ tnpSetup.setupTreeMaker(process,options)
 # If miniAOD, adding some leptonMva versions, as well
 # as some advanced input variables like miniIso
 ###################################################################
-if not options['useAOD']:
+if not options['useAOD'] and not options['USE_SCOUTING_OBJECTS']:
   from EgammaAnalysis.TnPTreeProducer.leptonMva_cff import leptonMvaSequence
   process.init_sequence += leptonMvaSequence(process, options, tnpVars)
 
@@ -287,9 +348,11 @@ if options['DoPhoID']   : process.tnpPairs_sequence *= process.tnpPairingPhoIDs
 ##########################################################################
 ## TnP Trees
 ##########################################################################
+eleCommonStuff = tnpVars.CommonStuffForScoutingElectronProbe if options['USE_SCOUTING_OBJECTS'] else tnpVars.CommonStuffForGsfElectronProbe
+
 process.tnpEleTrig = cms.EDAnalyzer("TagProbeFitTreeProducer",
                                     mcTruthCommonStuff,
-                                    tnpVars.CommonStuffForGsfElectronProbe,
+                                    eleCommonStuff,
                                     tagProbePairs = cms.InputTag("tnpPairingEleHLT"),
                                     probeMatches  = cms.InputTag("genProbeEle"),
                                     allProbes     = cms.InputTag("probeEle"),
@@ -300,28 +363,38 @@ for flag in options['HLTFILTERSTOMEASURE']:
   setattr(process.tnpEleTrig.flags, flag, cms.InputTag(flag))
 
 
-process.tnpEleReco = cms.EDAnalyzer("TagProbeFitTreeProducer",
-                                    mcTruthCommonStuff,
-                                    tnpVars.CommonStuffForSuperClusterProbe,
-                                    tagProbePairs = cms.InputTag("tnpPairingEleRec"),
-                                    probeMatches  = cms.InputTag("genProbeSC"),
-                                    allProbes     = cms.InputTag("probeSC"),
-                                    flags         = cms.PSet(
-        passingRECO   = cms.InputTag("probeSCEle", "superclusters"),
-        passingRECOEcalDriven   = cms.InputTag("probeSCEle", "superclustersEcalDriven"),
-        passingRECOTrackDriven   = cms.InputTag("probeSCEle", "superclustersTrackDriven")
-        ),
+if not options['USE_SCOUTING_OBJECTS']:
+  process.tnpEleReco = cms.EDAnalyzer("TagProbeFitTreeProducer",
+                                      mcTruthCommonStuff,
+                                      tnpVars.CommonStuffForSuperClusterProbe,
+                                      tagProbePairs = cms.InputTag("tnpPairingEleRec"),
+                                      probeMatches  = cms.InputTag("genProbeSC"),
+                                      allProbes     = cms.InputTag("probeSC"),
+                                      flags         = cms.PSet(
+          passingRECO   = cms.InputTag("probeSCEle", "superclusters"),
+          passingRECOEcalDriven   = cms.InputTag("probeSCEle", "superclustersEcalDriven"),
+          passingRECOTrackDriven   = cms.InputTag("probeSCEle", "superclustersTrackDriven")
+          ),
 
-                                    )
+                                      )
 
-process.tnpEleIDs = cms.EDAnalyzer("TagProbeFitTreeProducer",
-                                    mcTruthCommonStuff,
-                                    tnpVars.CommonStuffForGsfElectronProbe,
-                                    tagProbePairs = cms.InputTag("tnpPairingEleIDs"),
-                                    probeMatches  = cms.InputTag("genProbeEle"),
-                                    allProbes     = cms.InputTag("probeEle"),
-                                    flags         = cms.PSet(),
-                                    )
+  process.tnpEleIDs = cms.EDAnalyzer("TagProbeFitTreeProducer",
+                                      mcTruthCommonStuff,
+                                      tnpVars.CommonStuffForGsfElectronProbe,
+                                      tagProbePairs = cms.InputTag("tnpPairingEleIDs"),
+                                      probeMatches  = cms.InputTag("genProbeEle"),
+                                      allProbes     = cms.InputTag("probeEle"),
+                                      flags         = cms.PSet(),
+                                      )
+else:
+  process.tnpEleIDs = cms.EDAnalyzer("TagProbeFitTreeProducer",
+                                      mcTruthCommonStuff,
+                                      tnpVars.CommonStuffForScoutingElectronProbe,
+                                      tagProbePairs = cms.InputTag("tnpPairingEleIDs"),
+                                      probeMatches  = cms.InputTag("genProbeEle"),
+                                      allProbes     = cms.InputTag("probeEle"),
+                                      flags         = cms.PSet(),
+                                      )
 
 # ID's to store in the electron ID and trigger tree
 # Simply look which probeEleX modules were made in egmElectronIDModules_cff.py and convert them into a passingX boolean in the tree 
@@ -332,14 +405,24 @@ for probeEleModule in str(process.ele_sequence).split('+'):
 
 
 
-process.tnpPhoIDs = cms.EDAnalyzer("TagProbeFitTreeProducer",
-                                    mcTruthCommonStuff,
-                                    tnpVars.CommonStuffForPhotonProbe,
-                                    tagProbePairs = cms.InputTag("tnpPairingPhoIDs"),
-                                    probeMatches  = cms.InputTag("genProbePho"),
-                                    allProbes     = cms.InputTag("probePho"),
-                                    flags         = cms.PSet(),
-                                    )
+if not options['USE_SCOUTING_OBJECTS']:
+  process.tnpPhoIDs = cms.EDAnalyzer("TagProbeFitTreeProducer",
+                                      mcTruthCommonStuff,
+                                      tnpVars.CommonStuffForPhotonProbe,
+                                      tagProbePairs = cms.InputTag("tnpPairingPhoIDs"),
+                                      probeMatches  = cms.InputTag("genProbePho"),
+                                      allProbes     = cms.InputTag("probePho"),
+                                      flags         = cms.PSet(),
+                                      )
+else:
+  process.tnpPhoIDs = cms.EDAnalyzer("TagProbeFitTreeProducer",
+                                      mcTruthCommonStuff,
+                                      tnpVars.CommonStuffForScoutingPhotonProbe,
+                                      tagProbePairs = cms.InputTag("tnpPairingPhoIDs"),
+                                      probeMatches  = cms.InputTag("genProbePho"),
+                                      allProbes     = cms.InputTag("probePho"),
+                                      flags         = cms.PSet(),
+                                      )
 
 # ID's to store in the photon ID tree
 # Simply look which probePhoX modules were made in egmPhotonIDModules_cff.py and convert them into a passingX boolean in the tree 
@@ -362,7 +445,8 @@ if options['addSUSY'] :
 tnpSetup.customize( process.tnpEleTrig , options )
 tnpSetup.customize( process.tnpEleIDs  , options )
 tnpSetup.customize( process.tnpPhoIDs  , options )
-tnpSetup.customize( process.tnpEleReco , options )
+if not options['USE_SCOUTING_OBJECTS']:
+  tnpSetup.customize( process.tnpEleReco , options )
 
 
 process.tree_sequence = cms.Sequence()

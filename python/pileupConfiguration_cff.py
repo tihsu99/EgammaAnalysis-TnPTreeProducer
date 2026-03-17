@@ -34,6 +34,7 @@ def setPileUpConfiguration(process, options):
                                   PileupData    = cms.vdouble(data_pu_distribution),
                                   )
   if options['useAOD']: process.pileupReweightingProducer.pileupInfoTag = "addPileupInfo"
+  if options.get('USE_SCOUTING_OBJECTS', False): process.pileupReweightingProducer.pileupInfoTag = "addPileupInfo"
 
   process.mc_sequence = cms.Sequence()
   if options['isMC'] : process.mc_sequence = cms.Sequence( process.pileupReweightingProducer )

@@ -16,27 +16,51 @@ def setTagsProbes(process, options):
     SCEleMatcher   = 'PatElectronMatchedCandidateProducer'
 
 
-    if (options['useAOD']):
+    if options.get('USE_SCOUTING_OBJECTS', False):
+        eleHLTProducer = 'ScoutingElectronTriggerCandProducer'
+        gamHLTProducer = None
+        if options['TRIGGER_OBJECT_COLL']:
+            hltObjects = options['TRIGGER_OBJECT_COLL']
+        else:
+            hltObjects = 'hltTriggerSummaryAOD' if options['triggerBackend'] == 'triggerEvent' else 'slimmedPatTrigger'
+        genParticles   = 'prunedGenParticles'
+        SCEleMatcher   = None
+        goodPartDef.setGoodParticlesScouting(process, options)
+
+    elif (options['useAOD']):
         eleHLTProducer = 'GsfElectronTriggerCandProducer'
         gamHLTProducer = 'PhotonTriggerCandProducer'
-        hltObjects     = 'hltTriggerSummaryAOD'
+        hltObjects     = options['TRIGGER_OBJECT_COLL'] if options['TRIGGER_OBJECT_COLL'] else 'hltTriggerSummaryAOD'
         genParticles   = 'genParticles'
         SCEleMatcher   = 'GsfElectronMatchedCandidateProducer'
         goodPartDef.setGoodParticlesAOD(     process, options )
 
     else:
+        if options['TRIGGER_OBJECT_COLL']:
+            hltObjects = options['TRIGGER_OBJECT_COLL']
         goodPartDef.setGoodParticlesMiniAOD( process, options )
 
 
     ####################### TAG ELECTRON ############################
-    process.tagEle = cms.EDProducer(eleHLTProducer,
-                                        filterNames = cms.vstring(options['TnPHLTTagFilters']),
-                                        inputs      = cms.InputTag("tagEleCutBasedTight"),
-                                        bits        = cms.InputTag('TriggerResults::' + options['HLTProcessName']),
-                                        objects     = cms.InputTag(hltObjects),
-                                        dR          = cms.double(0.3),
-                                        isAND       = cms.bool(True)
-                                    )
+    if options.get('USE_SCOUTING_OBJECTS', False):
+        process.tagEle = cms.EDProducer(eleHLTProducer,
+                                            filterNames = cms.vstring(options['TnPHLTTagFilters']),
+                                            inputs      = cms.InputTag("tagEleCutBasedTight"),
+                                            bits        = cms.InputTag('TriggerResults::' + options['HLTProcessName']),
+                                            objects     = cms.InputTag(hltObjects),
+                                            dR          = cms.double(0.3),
+                                            isAND       = cms.bool(True),
+                                            useTriggerEvent = cms.bool(options['triggerBackend'] == 'triggerEvent')
+                                        )
+    else:
+        process.tagEle = cms.EDProducer(eleHLTProducer,
+                                            filterNames = cms.vstring(options['TnPHLTTagFilters']),
+                                            inputs      = cms.InputTag("tagEleCutBasedTight"),
+                                            bits        = cms.InputTag('TriggerResults::' + options['HLTProcessName']),
+                                            objects     = cms.InputTag(hltObjects),
+                                            dR          = cms.double(0.3),
+                                            isAND       = cms.bool(True)
+                                        )
 
     ##################### PROBE ELECTRONs ###########################
     process.probeEle             = process.tagEle.clone()
@@ -69,31 +93,38 @@ def setTagsProbes(process, options):
       else:                 setattr(process, flag, process.probeElePassHLT.clone(filterNames=filterNames))
 
     ###################### PROBE PHOTONs ############################
-    process.probePho  = cms.EDProducer( gamHLTProducer,
-                                        filterNames = options['TnPHLTProbeFilters'],
-                                        inputs      = cms.InputTag("goodPhotons"),
-                                        bits        = cms.InputTag('TriggerResults::' + options['HLTProcessName'] ),
-                                        objects     = cms.InputTag(hltObjects),
-                                        dR          = cms.double(0.3),
-                                        isAND       = cms.bool(True)
+    if options.get('USE_SCOUTING_OBJECTS', False):
+      process.probePho = cms.EDProducer("TnPLeafCandidateRefSelector",
+                                        src = cms.InputTag("scoutingPhotons"),
+                                        cut = cms.string(options['PHOTON_CUTS'])
                                         )
-    if options['useAOD'] : process.probePho = process.goodPhotons.clone()
+    else:
+      process.probePho  = cms.EDProducer( gamHLTProducer,
+                                          filterNames = options['TnPHLTProbeFilters'],
+                                          inputs      = cms.InputTag("goodPhotons"),
+                                          bits        = cms.InputTag('TriggerResults::' + options['HLTProcessName'] ),
+                                          objects     = cms.InputTag(hltObjects),
+                                          dR          = cms.double(0.3),
+                                          isAND       = cms.bool(True)
+                                          )
+      if options['useAOD'] : process.probePho = process.goodPhotons.clone()
 
     ######################### PROBE SCs #############################
-    process.probeSC     = cms.EDProducer("RecoEcalCandidateTriggerCandProducer",
-                                            filterNames  = cms.vstring(options['TnPHLTProbeFilters']),
-                                             inputs       = cms.InputTag("goodSuperClusters"),
-                                             bits         = cms.InputTag('TriggerResults::' + options['HLTProcessName']),
-                                             objects      = cms.InputTag(hltObjects),
-                                             dR           = cms.double(0.3),
-                                             isAND        = cms.bool(True)
-                                        )
+    if not options.get('USE_SCOUTING_OBJECTS', False):
+      process.probeSC     = cms.EDProducer("RecoEcalCandidateTriggerCandProducer",
+                                              filterNames  = cms.vstring(options['TnPHLTProbeFilters']),
+                                               inputs       = cms.InputTag("goodSuperClusters"),
+                                               bits         = cms.InputTag('TriggerResults::' + options['HLTProcessName']),
+                                               objects      = cms.InputTag(hltObjects),
+                                               dR           = cms.double(0.3),
+                                               isAND        = cms.bool(True)
+                                          )
 
-    process.probeSCEle = cms.EDProducer( SCEleMatcher,
-                                            src     = cms.InputTag("superClusterCands"),
-                                            ReferenceElectronCollection = cms.untracked.InputTag("goodElectrons"),
-                                            cut = cms.string(options['SUPERCLUSTER_CUTS'])
-                                        )
+      process.probeSCEle = cms.EDProducer( SCEleMatcher,
+                                              src     = cms.InputTag("superClusterCands"),
+                                              ReferenceElectronCollection = cms.untracked.InputTag("goodElectrons"),
+                                              cut = cms.string(options['SUPERCLUSTER_CUTS'])
+                                          )
 
     ########################## gen tag & probes ######################
     if options['isMC'] :
@@ -119,8 +150,10 @@ def setTagsProbes(process, options):
                                             )
 
         process.genProbeEle  = process.genTagEle.clone( src = cms.InputTag("probeEle") )
-        process.genProbePho  = process.genTagEle.clone( src = cms.InputTag("probePho") )
-        process.genProbeSC   = process.genTagEle.clone( src = cms.InputTag("probeSC")  )
+        if options.get('USE_SCOUTING_OBJECTS', False) or hasattr(process, 'probePho'):
+          process.genProbePho  = process.genTagEle.clone( src = cms.InputTag("probePho") )
+        if not options.get('USE_SCOUTING_OBJECTS', False):
+          process.genProbeSC   = process.genTagEle.clone( src = cms.InputTag("probeSC")  )
 
 
     ########################### TnP pairs ############################
@@ -131,9 +164,10 @@ def setTagsProbes(process, options):
                                         cut = masscut,
                                         )
 
-    process.tnpPairingEleRec             = process.tnpPairingEleHLT.clone()
-    process.tnpPairingEleRec.decay       = cms.string("tagEle probeSC" )
-    process.tnpPairingEleRec.checkCharge = cms.bool(False)
+    if not options.get('USE_SCOUTING_OBJECTS', False):
+      process.tnpPairingEleRec             = process.tnpPairingEleHLT.clone()
+      process.tnpPairingEleRec.decay       = cms.string("tagEle probeSC" )
+      process.tnpPairingEleRec.checkCharge = cms.bool(False)
 
     process.tnpPairingEleIDs             = process.tnpPairingEleHLT.clone()
     process.tnpPairingEleIDs.decay       = cms.string("tagEle probeEle")
@@ -162,29 +196,47 @@ def setSequences(process, options):
 
 
     process.sc_sequence  = cms.Sequence()
-    if options['useAOD'] : process.sc_sequence += process.sc_sequenceAOD
-    else :                 process.sc_sequence += process.sc_sequenceMiniAOD
-    process.sc_sequence += process.probeSC
-    process.sc_sequence += process.probeSCEle
+    if options.get('USE_SCOUTING_OBJECTS', False):
+        process.init_sequence += process.scoutingElectrons
+        process.init_sequence += process.scoutingPhotons
+        import EgammaAnalysis.TnPTreeProducer.egmElectronIDModules_cff as egmEleID
+        process.ele_sequence = egmEleID.setIDs(process, options)
+        process.ele_sequence += cms.Sequence(process.probeEle)
+    else:
+        if options['useAOD'] : process.sc_sequence += process.sc_sequenceAOD
+        else :                 process.sc_sequence += process.sc_sequenceMiniAOD
+        process.sc_sequence += process.probeSC
+        process.sc_sequence += process.probeSCEle
 
-    import EgammaAnalysis.TnPTreeProducer.egmElectronIDModules_cff as egmEleID
-    process.ele_sequence  = egmEleID.setIDs(process, options)
-    process.ele_sequence += cms.Sequence(process.probeEle)
+        import EgammaAnalysis.TnPTreeProducer.egmElectronIDModules_cff as egmEleID
+        process.ele_sequence  = egmEleID.setIDs(process, options)
+        process.ele_sequence += cms.Sequence(process.probeEle)
 
     if options['ApplyL1Matching']:
       process.ele_sequence += process.goodElectronProbesL1
       process.ele_sequence += process.probeEleL1matched
 
-    process.tag_sequence = cms.Sequence(
-        process.goodElectrons             +
-        process.tagEleCutBasedTight       + # note: this one also gets introduced by the egmEleID.setIDs function
-        process.tagEle
+    if options.get('USE_SCOUTING_OBJECTS', False):
+        process.tag_sequence = cms.Sequence(
+            process.goodElectrons +
+            process.tagEleCutBasedTight +
+            process.tagEle
         )
+        import EgammaAnalysis.TnPTreeProducer.egmPhotonIDModules_cff as egmPhoID
+        process.pho_sequence = cms.Sequence(process.goodPhotons)
+        process.pho_sequence += egmPhoID.setIDs(process, options)
+        process.pho_sequence += cms.Sequence(process.probePho)
+    else:
+        process.tag_sequence = cms.Sequence(
+            process.goodElectrons             +
+            process.tagEleCutBasedTight       + # note: this one also gets introduced by the egmEleID.setIDs function
+            process.tagEle
+            )
 
-    import EgammaAnalysis.TnPTreeProducer.egmPhotonIDModules_cff as egmPhoID
-    process.pho_sequence  = cms.Sequence(process.goodPhotons)
-    process.pho_sequence += egmPhoID.setIDs(process, options)
-    process.pho_sequence += cms.Sequence(process.probePho)
+        import EgammaAnalysis.TnPTreeProducer.egmPhotonIDModules_cff as egmPhoID
+        process.pho_sequence  = cms.Sequence(process.goodPhotons)
+        process.pho_sequence += egmPhoID.setIDs(process, options)
+        process.pho_sequence += cms.Sequence(process.probePho)
 
     process.hlt_sequence = cms.Sequence( process.hltFilter )
     for flag in options['HLTFILTERSTOMEASURE']:
@@ -193,11 +245,14 @@ def setSequences(process, options):
     if options['isMC'] :
         process.tag_sequence += process.genEle + process.genTagEle
         process.ele_sequence += process.genProbeEle
-        process.pho_sequence += process.genProbePho
-        process.sc_sequence  += process.genProbeSC
+        if hasattr(process, 'genProbePho'):
+            process.pho_sequence += process.genProbePho
+        if not options.get('USE_SCOUTING_OBJECTS', False):
+            process.sc_sequence  += process.genProbeSC
 
-    process.init_sequence += process.egmGsfElectronIDSequence
-    process.init_sequence += process.egmPhotonIDSequence
+    if not options.get('USE_SCOUTING_OBJECTS', False):
+        process.init_sequence += process.egmGsfElectronIDSequence
+        process.init_sequence += process.egmPhotonIDSequence
     process.init_sequence += process.eleVarHelper
     if options['addSUSY'] : process.init_sequence += process.susy_sequence
     if options['addSUSY'] : process.init_sequence += process.susy_sequence_requiresVID
@@ -225,4 +280,3 @@ def customize( tnpTree, options ):
         tnpTree.PUWeightSrc = cms.InputTag("pileupReweightingProducer","pileupWeights")
     else:
         tnpTree.isMC = cms.bool( False )
-
