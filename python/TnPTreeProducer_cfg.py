@@ -268,11 +268,14 @@ options['L1Threshold']          = varOptions.L1Threshold
 ## Define input files for test local run
 ###################################################################
 if options['inputFormat'] == 'hltscout':
-  options['INPUT_FILE_NAME'] = varOptions.inputFiles
+  options['INPUT_FILE_NAME'] = cms.untracked.vstring(*varOptions.inputFiles)
 else:
   importTestFiles = 'from EgammaAnalysis.TnPTreeProducer.etc.tnpInputTestFiles_cff import files%s_%s as inputs' % ('AOD' if options['useAOD'] else 'MiniAOD', options['era'])
   exec(importTestFiles)
-  options['INPUT_FILE_NAME'] = inputs['mc' if options['isMC'] else 'data'] if len(varOptions.inputFiles) == 0 else varOptions.inputFiles
+  if len(varOptions.inputFiles) == 0:
+    options['INPUT_FILE_NAME'] = inputs['mc' if options['isMC'] else 'data']
+  else:
+    options['INPUT_FILE_NAME'] = cms.untracked.vstring(*varOptions.inputFiles)
 
 ###################################################################
 ## Standard imports, GT and pile-up
