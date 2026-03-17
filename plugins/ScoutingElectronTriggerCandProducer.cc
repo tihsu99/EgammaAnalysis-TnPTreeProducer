@@ -6,17 +6,24 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "DataFormats/Candidate/interface/LeafCandidate.h"
+#include "DataFormats/Common/interface/RefVector.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/HLTReco/interface/TriggerEvent.h"
 #include "DataFormats/HLTReco/interface/TriggerObject.h"
 #include "DataFormats/Math/interface/deltaR.h"
 #include "DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h"
 
+#include <vector>
+
+using LeafCandidateCollection = std::vector<reco::LeafCandidate>;
+using LeafCandidateRef = edm::Ref<LeafCandidateCollection>;
+using LeafCandidateRefVector = edm::RefVector<LeafCandidateCollection>;
+
 class ScoutingElectronTriggerCandProducer : public edm::one::EDProducer<> {
 public:
   explicit ScoutingElectronTriggerCandProducer(const edm::ParameterSet& iConfig)
       : filterNames_(iConfig.getParameter<std::vector<std::string>>("filterNames")),
-        inputs_(consumes<reco::LeafCandidateRefVector>(iConfig.getParameter<edm::InputTag>("inputs"))),
+        inputs_(consumes<LeafCandidateRefVector>(iConfig.getParameter<edm::InputTag>("inputs"))),
         triggerBits_(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("bits"))),
         dRMatch_(iConfig.getParameter<double>("dR")),
         isAND_(iConfig.getParameter<bool>("isAND")),
@@ -27,16 +34,16 @@ public:
     } else {
       triggerObjects_ = consumes<std::vector<pat::TriggerObjectStandAlone>>(objects);
     }
-    produces<reco::LeafCandidateRefVector>();
+    produces<LeafCandidateRefVector>();
   }
 
   void produce(edm::Event& iEvent, const edm::EventSetup&) override {
-    edm::Handle<reco::LeafCandidateRefVector> inputs;
+    edm::Handle<LeafCandidateRefVector> inputs;
     edm::Handle<edm::TriggerResults> triggerBits;
     iEvent.getByToken(inputs_, inputs);
     iEvent.getByToken(triggerBits_, triggerBits);
 
-    auto out = std::make_unique<reco::LeafCandidateRefVector>();
+    auto out = std::make_unique<LeafCandidateRefVector>();
     if (!triggerBits.isValid()) {
       iEvent.put(std::move(out));
       return;
@@ -52,7 +59,7 @@ public:
       const trigger::TriggerObjectCollection& triggerObjects(triggerEvent->getObjects());
 
       for (size_t i = 0; i < inputs->size(); ++i) {
-        const reco::LeafCandidateRef ref = (*inputs)[i];
+        const LeafCandidateRef ref = (*inputs)[i];
         bool saveObj = evaluateTriggerEvent(ref, triggerEvent.product(), triggerObjects);
         if (saveObj) {
           out->push_back(ref);
@@ -68,7 +75,7 @@ public:
 
       const edm::TriggerNames& triggerNames = iEvent.triggerNames(*triggerBits);
       for (size_t i = 0; i < inputs->size(); ++i) {
-        const reco::LeafCandidateRef ref = (*inputs)[i];
+        const LeafCandidateRef ref = (*inputs)[i];
         bool saveObj = evaluatePatTrigger(ref, triggerObjects.product(), *triggerBits, triggerNames, iEvent);
         if (saveObj) {
           out->push_back(ref);
@@ -80,7 +87,7 @@ public:
   }
 
 private:
-  bool evaluateTriggerEvent(const reco::LeafCandidateRef& ref,
+  bool evaluateTriggerEvent(const LeafCandidateRef& ref,
                             const trigger::TriggerEvent* triggerEvent,
                             const trigger::TriggerObjectCollection& triggerObjects) const {
     if (filterNames_.empty()) {
@@ -121,7 +128,7 @@ private:
     return saveObj;
   }
 
-  bool evaluatePatTrigger(const reco::LeafCandidateRef& ref,
+  bool evaluatePatTrigger(const LeafCandidateRef& ref,
                           const std::vector<pat::TriggerObjectStandAlone>* triggerObjects,
                           const edm::TriggerResults& triggerBits,
                           const edm::TriggerNames& triggerNames,
@@ -158,7 +165,7 @@ private:
   }
 
   std::vector<std::string> filterNames_;
-  edm::EDGetTokenT<reco::LeafCandidateRefVector> inputs_;
+  edm::EDGetTokenT<LeafCandidateRefVector> inputs_;
   edm::EDGetTokenT<edm::TriggerResults> triggerBits_;
   edm::EDGetTokenT<std::vector<pat::TriggerObjectStandAlone>> triggerObjects_;
   edm::EDGetTokenT<trigger::TriggerEvent> triggerEvent_;

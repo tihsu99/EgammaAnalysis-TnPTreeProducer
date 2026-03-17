@@ -5,6 +5,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "DataFormats/Candidate/interface/LeafCandidate.h"
+#include "DataFormats/Common/interface/RefVector.h"
 #include "DataFormats/Common/interface/ValueMap.h"
 #include "DataFormats/Scouting/interface/Run3ScoutingElectron.h"
 #include "DataFormats/Scouting/interface/Run3ScoutingVertex.h"
@@ -12,12 +13,15 @@
 #include "EgammaAnalysis/TnPTreeProducer/plugins/WriteValueMap.h"
 
 #include <algorithm>
+#include <vector>
+
+using LeafCandidateCollection = std::vector<reco::LeafCandidate>;
 
 class ScoutingElectronVariableHelper : public edm::one::EDProducer<> {
 public:
   explicit ScoutingElectronVariableHelper(const edm::ParameterSet& iConfig)
       : srcToken_(consumes<std::vector<Run3ScoutingElectron>>(iConfig.getParameter<edm::InputTag>("src"))),
-        probesToken_(consumes<reco::LeafCandidateCollection>(iConfig.getParameter<edm::InputTag>("probes"))),
+        probesToken_(consumes<LeafCandidateCollection>(iConfig.getParameter<edm::InputTag>("probes"))),
         vtxToken_(consumes<std::vector<Run3ScoutingVertex>>(iConfig.getParameter<edm::InputTag>("vertexCollection"))),
         rhoToken_(consumes<double>(iConfig.getParameter<edm::InputTag>("rhoInputTag"))) {
     produces<edm::ValueMap<float>>("dEtaIn");
@@ -39,7 +43,7 @@ public:
 
   void produce(edm::Event& iEvent, const edm::EventSetup&) override {
     edm::Handle<std::vector<Run3ScoutingElectron>> src;
-    edm::Handle<reco::LeafCandidateCollection> probes;
+    edm::Handle<LeafCandidateCollection> probes;
     edm::Handle<std::vector<Run3ScoutingVertex>> vertices;
     edm::Handle<double> rhoH;
 
@@ -96,8 +100,8 @@ public:
       trackIso.push_back(ele.trackIso());
       r9.push_back(ele.r9());
       sMin.push_back(ele.sMin());
-      dxy.push_back(ele.d0());
-      dz.push_back(ele.dz());
+      dxy.push_back(ele.trkd0().empty() ? 999999.f : ele.trkd0()[0]);
+      dz.push_back(ele.trkdz().empty() ? 999999.f : ele.trkdz()[0]);
       sip.push_back(999999.f);
       rhoVals.push_back(rho);
     }
@@ -121,7 +125,7 @@ public:
 
 private:
   edm::EDGetTokenT<std::vector<Run3ScoutingElectron>> srcToken_;
-  edm::EDGetTokenT<reco::LeafCandidateCollection> probesToken_;
+  edm::EDGetTokenT<LeafCandidateCollection> probesToken_;
   edm::EDGetTokenT<std::vector<Run3ScoutingVertex>> vtxToken_;
   edm::EDGetTokenT<double> rhoToken_;
 };

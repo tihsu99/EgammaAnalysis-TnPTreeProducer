@@ -8,18 +8,22 @@
 #include "DataFormats/Scouting/interface/Run3ScoutingPhoton.h"
 #include "Math/Vector4D.h"
 
+#include <vector>
+
+using LeafCandidateCollection = std::vector<reco::LeafCandidate>;
+
 class ScoutingPhotonToCandidateProducer : public edm::one::EDProducer<> {
 public:
   explicit ScoutingPhotonToCandidateProducer(const edm::ParameterSet& iConfig)
       : srcToken_(consumes<std::vector<Run3ScoutingPhoton>>(iConfig.getParameter<edm::InputTag>("src"))) {
-    produces<reco::LeafCandidateCollection>();
+    produces<LeafCandidateCollection>();
   }
 
   void produce(edm::Event& iEvent, const edm::EventSetup&) override {
     edm::Handle<std::vector<Run3ScoutingPhoton>> src;
     iEvent.getByToken(srcToken_, src);
 
-    auto out = std::make_unique<reco::LeafCandidateCollection>();
+    auto out = std::make_unique<LeafCandidateCollection>();
     out->reserve(src->size());
 
     for (const auto& pho : *src) {
