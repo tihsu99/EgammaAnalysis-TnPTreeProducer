@@ -468,10 +468,14 @@ if options['DEBUG']:
                                  )
   process.outpath = cms.EndPath(process.out)
 
-process.evtCounter = cms.EDAnalyzer('SimpleEventCounter')
+if options['USE_SCOUTING_OBJECTS']:
+  process.evtCounterSequence = cms.Sequence()
+else:
+  process.evtCounter = cms.EDAnalyzer('SimpleEventCounter')
+  process.evtCounterSequence = cms.Sequence(process.evtCounter)
 
 process.p = cms.Path(
-        process.evtCounter        +
+        process.evtCounterSequence +
         process.hltFilter         +
         process.cand_sequence     +
         process.tnpPairs_sequence +
