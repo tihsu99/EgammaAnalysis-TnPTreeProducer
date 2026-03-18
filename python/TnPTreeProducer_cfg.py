@@ -64,7 +64,7 @@ if varOptions.objectBackend not in valid_object_backends:
   log.error('%s is not a valid objectBackend' % varOptions.objectBackend)
 if varOptions.triggerBackend not in valid_trigger_backends:
   log.error('%s is not a valid triggerBackend' % varOptions.triggerBackend)
-if varOptions.objectBackend == 'scouting' and (varOptions.doEleID or varOptions.doPhoID or varOptions.doRECO):
+if varOptions.objectBackend == 'scouting' and varOptions.doRECO:
   log.warning('scouting backend currently supports doTrigger, doEleID, and doPhoID only; disabling doRECO')
 if varOptions.inputFormat == 'hltscout' and varOptions.objectBackend != 'scouting':
   log.error('hltscout inputFormat requires objectBackend=scouting')
@@ -468,11 +468,9 @@ if options['DEBUG']:
                                  )
   process.outpath = cms.EndPath(process.out)
 
-if options['USE_SCOUTING_OBJECTS']:
-  process.evtCounterSequence = cms.Sequence()
-else:
-  process.evtCounter = cms.EDAnalyzer('SimpleEventCounter')
-  process.evtCounterSequence = cms.Sequence(process.evtCounter)
+
+process.evtCounter = cms.EDAnalyzer('SimpleEventCounter')
+process.evtCounterSequence = cms.Sequence(process.evtCounter)
 
 process.p = cms.Path(
         process.evtCounterSequence +

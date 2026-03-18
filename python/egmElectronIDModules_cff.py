@@ -10,17 +10,31 @@ from EgammaAnalysis.TnPTreeProducer.cmssw_version import isReleaseAbove
 def setIDs(process, options):
 
     if options.get('USE_SCOUTING_OBJECTS', False):
-        process.tagEleCutBasedTight = cms.EDProducer('TnPLeafCandidateRefSelector',
-                                                     src = cms.InputTag("scoutingElectrons"),
-                                                     cut = cms.string(options['ELECTRON_TAG_CUTS'])
-                                                )
-        process.probeEleScoutingPlaceholderWP = cms.EDProducer(
+        process.tagEleCutBasedTight = cms.EDProducer(
             'TnPLeafCandidateRefSelector',
-            src = cms.InputTag("scoutingElectrons"),
-            # Placeholder scouting WP. Replace this cut with the desired scouting ID recipe.
-            cut = cms.string("pt >= 0")
+            src = cms.InputTag("goodElectrons"),
+            cut = cms.string(options['ELECTRON_TAG_CUTS'])
         )
-        return cms.Sequence(process.probeEleScoutingPlaceholderWP)
+
+        def addNewScoutingProbeModule(sequence, name, workingPoint):
+          temp = cms.EDProducer(
+              'ScoutingElectronRefSelector',
+              input = cms.InputTag("goodElectrons"),
+              src = cms.InputTag(options['ELECTRON_COLL']),
+              workingPoint = cms.string(workingPoint)
+          )
+          setattr(process, 'probeEle%s' % name, temp)
+          sequence += temp
+
+        probeSequence = cms.Sequence()
+
+        addNewScoutingProbeModule(probeSequence, 'ScoutingHoE0p20', 'ScoutingHoE0p20')
+        addNewScoutingProbeModule(probeSequence, 'ScoutingPlaceholderWP', 'ScoutingPlaceholderWP')
+        addNewScoutingProbeModule(probeSequence, 'ScoutingLoose', 'ScoutingLoose')
+        addNewScoutingProbeModule(probeSequence, 'ScoutingMedium', 'ScoutingMedium')
+        addNewScoutingProbeModule(probeSequence, 'ScoutingTight', 'ScoutingTight')
+
+        return probeSequence
 
     switchOnVIDElectronIdProducer(process, DataFormat.AOD if options['useAOD'] else DataFormat.MiniAOD)
 
