@@ -8,9 +8,6 @@
 
 namespace {
   struct dictionary {
-    std::vector<reco::LeafCandidate> leafCandidateCollection;
-    edm::Wrapper<std::vector<reco::LeafCandidate>> leafCandidateCollectionWrapper;
-
     edm::Ref<std::vector<reco::LeafCandidate>> leafCandidateRef;
     edm::RefProd<std::vector<reco::LeafCandidate>> leafCandidateRefProd;
     edm::RefVector<std::vector<reco::LeafCandidate>> leafCandidateRefVector;
