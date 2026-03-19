@@ -23,7 +23,9 @@ public:
       : srcToken_(consumes<std::vector<Run3ScoutingElectron>>(iConfig.getParameter<edm::InputTag>("src"))),
         probesToken_(consumes<LeafCandidateCollection>(iConfig.getParameter<edm::InputTag>("probes"))),
         vtxToken_(consumes<std::vector<Run3ScoutingVertex>>(iConfig.getParameter<edm::InputTag>("vertexCollection"))),
-        rhoToken_(consumes<double>(iConfig.getParameter<edm::InputTag>("rhoInputTag"))) {
+        rhoToken_(consumes<double>(iConfig.getParameter<edm::InputTag>("rhoInputTag"))),
+        bestTrackD0Token_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("bestTrackD0"))),
+        bestTrackDzToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("bestTrackDz"))) {
     produces<edm::ValueMap<float>>("dEtaIn");
     produces<edm::ValueMap<float>>("dPhiIn");
     produces<edm::ValueMap<float>>("sigmaIetaIeta");
@@ -46,11 +48,15 @@ public:
     edm::Handle<LeafCandidateCollection> probes;
     edm::Handle<std::vector<Run3ScoutingVertex>> vertices;
     edm::Handle<double> rhoH;
+    edm::Handle<edm::ValueMap<float>> bestTrackD0;
+    edm::Handle<edm::ValueMap<float>> bestTrackDz;
 
     iEvent.getByToken(srcToken_, src);
     iEvent.getByToken(probesToken_, probes);
     iEvent.getByToken(vtxToken_, vertices);
     iEvent.getByToken(rhoToken_, rhoH);
+    iEvent.getByToken(bestTrackD0Token_, bestTrackD0);
+    iEvent.getByToken(bestTrackDzToken_, bestTrackDz);
 
     const float rho = rhoH.isValid() ? *rhoH : 999999.f;
 
@@ -100,8 +106,17 @@ public:
       trackIso.push_back(ele.trackIso());
       r9.push_back(ele.r9());
       sMin.push_back(ele.sMin());
-      dxy.push_back(ele.trkd0().empty() ? 999999.f : ele.trkd0()[0]);
-      dz.push_back(ele.trkdz().empty() ? 999999.f : ele.trkdz()[0]);
+      float bestD0 = ele.trkd0().empty() ? 999999.f : ele.trkd0()[0];
+      float bestDz = ele.trkdz().empty() ? 999999.f : ele.trkdz()[0];
+      const edm::Ref<std::vector<Run3ScoutingElectron>> eleRef(src, i);
+      if (bestTrackD0.isValid()) {
+        bestD0 = (*bestTrackD0)[eleRef];
+      }
+      if (bestTrackDz.isValid()) {
+        bestDz = (*bestTrackDz)[eleRef];
+      }
+      dxy.push_back(bestD0);
+      dz.push_back(bestDz);
       sip.push_back(999999.f);
       rhoVals.push_back(rho);
     }
@@ -128,6 +143,8 @@ private:
   edm::EDGetTokenT<LeafCandidateCollection> probesToken_;
   edm::EDGetTokenT<std::vector<Run3ScoutingVertex>> vtxToken_;
   edm::EDGetTokenT<double> rhoToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> bestTrackD0Token_;
+  edm::EDGetTokenT<edm::ValueMap<float>> bestTrackDzToken_;
 };
 
 DEFINE_FWK_MODULE(ScoutingElectronVariableHelper);

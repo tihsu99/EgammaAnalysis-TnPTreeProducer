@@ -197,6 +197,7 @@ def setSequences(process, options):
 
     process.sc_sequence  = cms.Sequence()
     if options.get('USE_SCOUTING_OBJECTS', False):
+        process.init_sequence += process.scoutingElectronBestTrack
         process.init_sequence += process.scoutingElectrons
         process.init_sequence += process.scoutingPhotons
         import EgammaAnalysis.TnPTreeProducer.egmElectronIDModules_cff as egmEleID

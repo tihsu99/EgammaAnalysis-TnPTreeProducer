@@ -110,9 +110,18 @@ def setGoodParticlesMiniAOD(process, options):
 ################  --- GOOD particles Scouting
 ###################################################################################
 def setGoodParticlesScouting(process, options):
+    process.scoutingElectronBestTrack = cms.EDProducer(
+        "Run3ScoutingElectronBestTrackProducer",
+        Run3ScoutingElectron=cms.InputTag(options['ELECTRON_COLL']),
+        TrackPtMin=cms.vdouble(12.0, 12.0),
+        TrackChi2OverNdofMax=cms.vdouble(3.0, 2.0),
+        RelativeEnergyDifferenceMax=cms.vdouble(1.0, 1.0),
+        DeltaPhiMax=cms.vdouble(0.06, 0.06)
+    )
 
     process.scoutingElectrons = cms.EDProducer("ScoutingElectronToCandidateProducer",
-                                               src = cms.InputTag(options['ELECTRON_COLL'])
+                                               src = cms.InputTag(options['ELECTRON_COLL']),
+                                               bestTrackCharge = cms.InputTag("scoutingElectronBestTrack", "Run3ScoutingElectronTrackcharge")
                                                )
     process.scoutingPhotons = cms.EDProducer("ScoutingPhotonToCandidateProducer",
                                              src = cms.InputTag(options['PHOTON_COLL'])
@@ -122,7 +131,9 @@ def setGoodParticlesScouting(process, options):
                                           src              = cms.InputTag(options['ELECTRON_COLL']),
                                           probes           = cms.InputTag("scoutingElectrons"),
                                           vertexCollection = cms.InputTag(options['SCOUTING_VERTEX_COLL']),
-                                          rhoInputTag      = cms.InputTag(options['SCOUTING_RHO'])
+                                          rhoInputTag      = cms.InputTag(options['SCOUTING_RHO']),
+                                          bestTrackD0      = cms.InputTag("scoutingElectronBestTrack", "Run3ScoutingElectronTrackd0"),
+                                          bestTrackDz      = cms.InputTag("scoutingElectronBestTrack", "Run3ScoutingElectronTrackdz")
                                           )
 
     process.goodElectrons = cms.EDProducer("TnPLeafCandidateRefSelector",
