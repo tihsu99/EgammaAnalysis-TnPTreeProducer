@@ -11,9 +11,10 @@ def setIDs(process, options):
 
     if options.get('USE_SCOUTING_OBJECTS', False):
         process.tagEleCutBasedTight = cms.EDProducer(
-            'TnPLeafCandidateRefSelector',
-            src = cms.InputTag("goodElectrons"),
-            cut = cms.string(options['ELECTRON_TAG_CUTS'])
+            'ScoutingElectronRefSelector',
+            input = cms.InputTag("goodElectrons"),
+            src = cms.InputTag(options['ELECTRON_COLL']),
+            workingPoint = cms.string("ScoutingElectronRecommendv1")
         )
 
         def addNewScoutingProbeModule(sequence, name, workingPoint):
@@ -28,11 +29,7 @@ def setIDs(process, options):
 
         probeSequence = cms.Sequence()
 
-        addNewScoutingProbeModule(probeSequence, 'ScoutingHoE0p20', 'ScoutingHoE0p20')
-        addNewScoutingProbeModule(probeSequence, 'ScoutingPlaceholderWP', 'ScoutingPlaceholderWP')
-        addNewScoutingProbeModule(probeSequence, 'ScoutingLoose', 'ScoutingLoose')
-        addNewScoutingProbeModule(probeSequence, 'ScoutingMedium', 'ScoutingMedium')
-        addNewScoutingProbeModule(probeSequence, 'ScoutingTight', 'ScoutingTight')
+        addNewScoutingProbeModule(probeSequence, 'ScoutingElectronRecommendv1', 'ScoutingElectronRecommendv1')
 
         return probeSequence
 

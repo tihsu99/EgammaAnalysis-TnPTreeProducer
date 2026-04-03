@@ -10,13 +10,21 @@ from EgammaAnalysis.TnPTreeProducer.cmssw_version import isReleaseAbove
 def setIDs(process, options):
 
     if options.get('USE_SCOUTING_OBJECTS', False):
-        process.probePhoScoutingPlaceholderWP = cms.EDProducer(
-            'TnPLeafCandidateRefSelector',
-            src = cms.InputTag("scoutingPhotons"),
-            # Placeholder scouting photon WP. Replace this cut with the desired scouting ID recipe.
-            cut = cms.string("pt >= 0")
-        )
-        return cms.Sequence(process.probePhoScoutingPlaceholderWP)
+        def addNewScoutingProbeModule(sequence, name, workingPoint):
+          temp = cms.EDProducer(
+              'ScoutingPhotonRefSelector',
+              input = cms.InputTag("goodPhotons"),
+              src = cms.InputTag(options['PHOTON_COLL']),
+              workingPoint = cms.string(workingPoint)
+          )
+          setattr(process, 'probePho%s' % name, temp)
+          sequence += temp
+
+        probeSequence = cms.Sequence()
+
+        addNewScoutingProbeModule(probeSequence, 'ScoutingPhotonRecommendv1', 'ScoutingPhotonRecommendv1')
+
+        return probeSequence
 
     switchOnVIDPhotonIdProducer(process, DataFormat.AOD if options['useAOD'] else DataFormat.MiniAOD)
 
