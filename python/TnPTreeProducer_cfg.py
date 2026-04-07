@@ -309,8 +309,10 @@ pileUpSetup.setPileUpConfiguration(process, options)
 import EgammaAnalysis.TnPTreeProducer.egmTreesContent_cff as tnpVars
 if options['useAOD']: tnpVars.setupTnPVariablesForAOD()
 if options['USE_SCOUTING_OBJECTS']:
-  tnpVars.CommonStuffForScoutingElectronProbe.vertexCollection = cms.InputTag(options['SCOUTING_VERTEX_COLL'])
+  tnpVars.CommonStuffForScoutingElectronProbe.vertexCollection = cms.InputTag("scoutingVertices")
+  tnpVars.CommonStuffForScoutingPhotonProbe.vertexCollection = cms.InputTag("scoutingVertices")
   tnpVars.CommonStuffForScoutingElectronProbe.rho = cms.InputTag(options['SCOUTING_RHO'])
+  tnpVars.CommonStuffForScoutingPhotonProbe.rho = cms.InputTag(options['SCOUTING_RHO'])
 mcTruthCommonStuff = tnpVars.getTnPVariablesForMCTruth(options['isMC'])
 
 ###################################################################

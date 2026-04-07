@@ -126,6 +126,9 @@ def setGoodParticlesScouting(process, options):
     process.scoutingPhotons = cms.EDProducer("ScoutingPhotonToCandidateProducer",
                                              src = cms.InputTag(options['PHOTON_COLL'])
                                              )
+    process.scoutingVertices = cms.EDProducer("ScoutingVertexToRecoVertexProducer",
+                                              src = cms.InputTag(options['SCOUTING_VERTEX_COLL'])
+                                              )
 
     process.eleVarHelper = cms.EDProducer("ScoutingElectronVariableHelper",
                                           src              = cms.InputTag(options['ELECTRON_COLL']),

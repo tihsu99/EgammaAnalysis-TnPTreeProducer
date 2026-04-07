@@ -317,7 +317,7 @@ CommonStuffForScoutingElectronProbe = cms.PSet(
 
     addRunLumiInfo   = cms.bool(True),
     pileupInfoTag    = cms.InputTag("addPileupInfo"),
-    vertexCollection = cms.InputTag("hltScoutingPrimaryVertexPacker", "primaryVtx"),
+    vertexCollection = cms.InputTag("scoutingVertices"),
     beamSpot         = cms.InputTag("offlineBeamSpot"),
     addCaloMet       = cms.bool(False),
     rho              = cms.InputTag("hltScoutingPFPacker", "rho"),

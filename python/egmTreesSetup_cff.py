@@ -200,6 +200,7 @@ def setSequences(process, options):
         process.init_sequence += process.scoutingElectronBestTrack
         process.init_sequence += process.scoutingElectrons
         process.init_sequence += process.scoutingPhotons
+        process.init_sequence += process.scoutingVertices
         import EgammaAnalysis.TnPTreeProducer.egmElectronIDModules_cff as egmEleID
         process.ele_sequence = egmEleID.setIDs(process, options)
         process.ele_sequence += cms.Sequence(process.probeEle)
