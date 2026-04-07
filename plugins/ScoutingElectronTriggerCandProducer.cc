@@ -27,23 +27,39 @@ public:
         triggerBits_(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("bits"))),
         dRMatch_(iConfig.getParameter<double>("dR")),
         isAND_(iConfig.getParameter<bool>("isAND")),
-        useTriggerEvent_(iConfig.getParameter<bool>("useTriggerEvent")) {
-    const auto objects = iConfig.getParameter<edm::InputTag>("objects");
-    if (useTriggerEvent_) {
-      triggerEvent_ = consumes<trigger::TriggerEvent>(objects);
-    } else {
-      triggerObjects_ = consumes<std::vector<pat::TriggerObjectStandAlone>>(objects);
+        useTriggerEvent_(iConfig.getParameter<bool>("useTriggerEvent")),
+        requireTriggerObjectMatch_(iConfig.getParameter<bool>("requireTriggerObjectMatch")) {
+    if (requireTriggerObjectMatch_) {
+      const auto objects = iConfig.getParameter<edm::InputTag>("objects");
+      if (useTriggerEvent_) {
+        triggerEvent_ = consumes<trigger::TriggerEvent>(objects);
+      } else {
+        triggerObjects_ = consumes<std::vector<pat::TriggerObjectStandAlone>>(objects);
+      }
     }
     produces<LeafCandidateRefVector>();
   }
 
   void produce(edm::Event& iEvent, const edm::EventSetup&) override {
     edm::Handle<LeafCandidateRefVector> inputs;
-    edm::Handle<edm::TriggerResults> triggerBits;
     iEvent.getByToken(inputs_, inputs);
-    iEvent.getByToken(triggerBits_, triggerBits);
 
     auto out = std::make_unique<LeafCandidateRefVector>();
+    if (!inputs.isValid()) {
+      iEvent.put(std::move(out));
+      return;
+    }
+
+    if (!requireTriggerObjectMatch_) {
+      for (const auto& ref : *inputs) {
+        out->push_back(ref);
+      }
+      iEvent.put(std::move(out));
+      return;
+    }
+
+    edm::Handle<edm::TriggerResults> triggerBits;
+    iEvent.getByToken(triggerBits_, triggerBits);
     if (!triggerBits.isValid()) {
       iEvent.put(std::move(out));
       return;
@@ -172,6 +188,7 @@ private:
   double dRMatch_;
   bool isAND_;
   bool useTriggerEvent_;
+  bool requireTriggerObjectMatch_;
 };
 
 DEFINE_FWK_MODULE(ScoutingElectronTriggerCandProducer);

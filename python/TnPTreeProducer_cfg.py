@@ -36,6 +36,7 @@ registerOption('inputFormat',    'miniaod', 'Input format: miniaod, aod, hltscou
 registerOption('objectBackend',  'pat',     'Object backend: pat, gsf, scouting', optionType=VarParsing.varType.string)
 registerOption('triggerBackend', 'patTrigger', 'Trigger backend: patTrigger or triggerEvent', optionType=VarParsing.varType.string)
 registerOption('triggerObjectCollection', '', 'Override trigger object collection for the selected backend', optionType=VarParsing.varType.string)
+registerOption('requireTriggerObjectMatch', False, 'Require trigger-object matching in scouting trigger candidate producer')
 registerOption('scoutingElectronCollection', 'hltScoutingEgammaPacker', 'Scouting electron collection', optionType=VarParsing.varType.string)
 registerOption('scoutingPhotonCollection',   'hltScoutingEgammaPacker', 'Scouting photon collection', optionType=VarParsing.varType.string)
 registerOption('scoutingVertexCollection',   'hltScoutingPrimaryVertexPacker:primaryVtx', 'Scouting vertex collection', optionType=VarParsing.varType.string)
@@ -99,6 +100,7 @@ options['objectBackend']        = varOptions.objectBackend
 options['triggerBackend']       = varOptions.triggerBackend
 options['TRIGGER_OBJECT_COLL']  = varOptions.triggerObjectCollection
 options['USE_SCOUTING_OBJECTS'] = (varOptions.objectBackend == 'scouting')
+options['REQUIRE_TRIGGER_OBJECT_MATCH'] = varOptions.requireTriggerObjectMatch
 
 options['HLTProcessName']       = varOptions.HLTname
 options['era']                  = varOptions.era

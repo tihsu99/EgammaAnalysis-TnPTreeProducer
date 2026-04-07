@@ -50,7 +50,8 @@ def setTagsProbes(process, options):
                                             objects     = cms.InputTag(hltObjects),
                                             dR          = cms.double(0.3),
                                             isAND       = cms.bool(True),
-                                            useTriggerEvent = cms.bool(options['triggerBackend'] == 'triggerEvent')
+                                            useTriggerEvent = cms.bool(options['triggerBackend'] == 'triggerEvent'),
+                                            requireTriggerObjectMatch = cms.bool(options['REQUIRE_TRIGGER_OBJECT_MATCH'])
                                         )
     else:
         process.tagEle = cms.EDProducer(eleHLTProducer,
