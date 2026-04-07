@@ -28,7 +28,7 @@ registerOption('calibEn',     False,    'Use EGM smearer to calibrate photon and
 registerOption('includeSUSY', False,    'Add also the variables used by SUSY')
 
 #registerOption('HLTname',     'HLT',    'HLT process name (default HLT)', optionType=VarParsing.varType.string) # HLTname was HLT2 in now outdated reHLT samples
-registerOption('HLTname',     'MYHLT',    'HLT process name', optionType=VarParsing.varType.string) # Modified
+registerOption('HLTname',     'HLT',    'HLT process name', optionType=VarParsing.varType.string) # Modified
 registerOption('GT',          'auto',   'Global Tag to be used', optionType=VarParsing.varType.string)
 registerOption('era',         '2018',   'Data-taking era: 2016, 2017, 2018, 2022, 2023, 2023preBPIX, 2023postBPIX, 2024, 2025, UL2017 or UL2018', optionType=VarParsing.varType.string)
 registerOption('logLevel',    'INFO',   'Loglevel: could be DEBUG, INFO, WARNING, ERROR', optionType=VarParsing.varType.string)
@@ -36,8 +36,8 @@ registerOption('inputFormat',    'miniaod', 'Input format: miniaod, aod, hltscou
 registerOption('objectBackend',  'pat',     'Object backend: pat, gsf, scouting', optionType=VarParsing.varType.string)
 registerOption('triggerBackend', 'patTrigger', 'Trigger backend: patTrigger or triggerEvent', optionType=VarParsing.varType.string)
 registerOption('triggerObjectCollection', '', 'Override trigger object collection for the selected backend', optionType=VarParsing.varType.string)
-registerOption('scoutingElectronCollection', 'hltScoutingEgammaPacker', 'Scouting electron collection', optionType=VarParsing.varType.string)
-registerOption('scoutingPhotonCollection',   'hltScoutingEgammaPacker', 'Scouting photon collection', optionType=VarParsing.varType.string)
+registerOption('scoutingElectronCollection', 'hltScoutingEgammaPacker:Run3ScoutingElectron', 'Scouting electron collection', optionType=VarParsing.varType.string)
+registerOption('scoutingPhotonCollection',   'hltScoutingEgammaPacker:Run3ScoutingPhoton', 'Scouting photon collection', optionType=VarParsing.varType.string)
 registerOption('scoutingVertexCollection',   'hltScoutingPrimaryVertexPacker:primaryVtx', 'Scouting vertex collection', optionType=VarParsing.varType.string)
 registerOption('scoutingRho',                'hltScoutingPFPacker:rho', 'Scouting rho collection', optionType=VarParsing.varType.string)
 
@@ -91,8 +91,6 @@ if varOptions.doRECO:      log.info('Producing RECO SF tree')
 options = dict()
 if varOptions.inputFormat == 'aod':
   options['useAOD'] = True
-elif varOptions.inputFormat == 'miniaod':
-  options['useAOD'] = False
 else:
   options['useAOD'] = False
 options['use80X']               = varOptions.is80X
@@ -123,8 +121,8 @@ options['SUPERCLUSTER_COLL']    = "reducedEgamma:reducedSuperClusters" ### not u
 if options['USE_SCOUTING_OBJECTS']:
   options['ELECTRON_CUTS']      = "pt > 5.0 && abs(eta) < 2.5"
   options['SUPERCLUSTER_CUTS']  = "abs(eta)<2.5 && et>5.0"
-  options['PHOTON_CUTS']        = "pt > 10.0 && abs(eta) < 2.5"
-  options['ELECTRON_TAG_CUTS']  = "pt >= 30.0 && abs(eta) < 2.5"
+  options['PHOTON_CUTS']        = "(pt > 10.0) && (abs(eta) <= 2.5)"
+  options['ELECTRON_TAG_CUTS']  = "(pt >= 30.0) && (abs(eta) <= 2.5) && !(1.4442<=abs(eta)<1.566)"
 else:
   options['ELECTRON_CUTS']      = "ecalEnergy*sin(superClusterPosition.theta)>5.0 &&  (abs(-log(tan(superClusterPosition.theta/2)))<2.5)"
   options['SUPERCLUSTER_CUTS']  = "abs(eta)<2.5 &&  et>5.0"
@@ -260,7 +258,7 @@ else:#Run-3
   options['HLTFILTERSTOMEASURE'].update(doubleEle33_leg2_allFilters)
 
 # Apply L1 matching (using L1Threshold) when flag contains "L1match" in name
-options['ApplyL1Matching']      = False if options['USE_SCOUTING_OBJECTS'] else any(['L1match' in flag for flag in options['HLTFILTERSTOMEASURE'].keys()])
+options['ApplyL1Matching']      = any(['L1match' in flag for flag in options['HLTFILTERSTOMEASURE'].keys()])
 options['L1Threshold']          = varOptions.L1Threshold
 
 

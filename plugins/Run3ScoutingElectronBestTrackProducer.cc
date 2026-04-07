@@ -116,7 +116,7 @@ private:
         continue;
       }
 
-      const double score = dPhi + 0.1 * relEDiff + 0.01 * chi2;
+      const double score = relEDiff;
       if (score < bestScore) {
         bestScore = score;
         bestIndex = i;
