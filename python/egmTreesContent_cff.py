@@ -309,7 +309,7 @@ ScoutingTagVariablesToStore = cms.PSet(
 )
 
 CommonStuffForScoutingElectronProbe = cms.PSet(
-    addEventVariablesInfo   = cms.bool(True),
+    addEventVariablesInfo   = cms.bool(False),
 
     variables        = cms.PSet(ScoutingEleProbeVariablesToStore),
     pairVariables    = cms.PSet(ZVariablesToStore),
