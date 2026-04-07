@@ -36,8 +36,8 @@ registerOption('inputFormat',    'miniaod', 'Input format: miniaod, aod, hltscou
 registerOption('objectBackend',  'pat',     'Object backend: pat, gsf, scouting', optionType=VarParsing.varType.string)
 registerOption('triggerBackend', 'patTrigger', 'Trigger backend: patTrigger or triggerEvent', optionType=VarParsing.varType.string)
 registerOption('triggerObjectCollection', '', 'Override trigger object collection for the selected backend', optionType=VarParsing.varType.string)
-registerOption('scoutingElectronCollection', 'hltScoutingEgammaPacker:Run3ScoutingElectron', 'Scouting electron collection', optionType=VarParsing.varType.string)
-registerOption('scoutingPhotonCollection',   'hltScoutingEgammaPacker:Run3ScoutingPhoton', 'Scouting photon collection', optionType=VarParsing.varType.string)
+registerOption('scoutingElectronCollection', 'hltScoutingEgammaPacker', 'Scouting electron collection', optionType=VarParsing.varType.string)
+registerOption('scoutingPhotonCollection',   'hltScoutingEgammaPacker', 'Scouting photon collection', optionType=VarParsing.varType.string)
 registerOption('scoutingVertexCollection',   'hltScoutingPrimaryVertexPacker:primaryVtx', 'Scouting vertex collection', optionType=VarParsing.varType.string)
 registerOption('scoutingRho',                'hltScoutingPFPacker:rho', 'Scouting rho collection', optionType=VarParsing.varType.string)
 
@@ -257,6 +257,11 @@ else:#Run-3
   options['HLTFILTERSTOMEASURE'].update(doubleEle33_leg1_allFilters)
   options['HLTFILTERSTOMEASURE'].update(doubleEle33_leg2_allFilters)
 
+
+if options['USE_SCOUTING_OBJECTS']:
+    options['TnPPATHS'] = cms.vstring("DST_PFScouting_SinglePhotonEB_v*")
+    options['TnPHLTTagFilters'] = cms.vstring("hltEG30EBTightIDTightIsoTrackIsoFilter")
+
 # Apply L1 matching (using L1Threshold) when flag contains "L1match" in name
 options['ApplyL1Matching']      = any(['L1match' in flag for flag in options['HLTFILTERSTOMEASURE'].keys()])
 options['L1Threshold']          = varOptions.L1Threshold
@@ -274,6 +279,9 @@ else:
     options['INPUT_FILE_NAME'] = inputs['mc' if options['isMC'] else 'data']
   else:
     options['INPUT_FILE_NAME'] = cms.untracked.vstring(*varOptions.inputFiles)
+
+
+
 
 ###################################################################
 ## Standard imports, GT and pile-up
