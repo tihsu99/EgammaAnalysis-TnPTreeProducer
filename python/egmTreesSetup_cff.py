@@ -113,12 +113,12 @@ def setTagsProbes(process, options):
     ######################### PROBE SCs #############################
     if options.get('USE_SCOUTING_OBJECTS', False):
       process.probeSC = cms.EDProducer("TnPLeafCandidateRefSelector",
-                                       src = cms.InputTag("goodScoutingEgammaCandidates"),
-                                       cut = cms.string("pt >= 0")
+                                       src = cms.InputTag("scoutingEgammaCandidates"),
+                                       cut = cms.string(options['SUPERCLUSTER_CUTS'])
                                        )
       process.probeSCEle = cms.EDProducer("TnPLeafCandidateRefSelector",
-                                          src = cms.InputTag("probeSC"),
-                                          cut = cms.string("charge != 0")
+                                          src = cms.InputTag("scoutingEgammaCandidates"),
+                                          cut = cms.string("(%s) && (charge != 0)" % options['SUPERCLUSTER_CUTS'])
                                           )
     else:
       process.probeSC     = cms.EDProducer("RecoEcalCandidateTriggerCandProducer",
