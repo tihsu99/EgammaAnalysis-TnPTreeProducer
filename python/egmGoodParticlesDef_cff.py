@@ -126,6 +126,11 @@ def setGoodParticlesScouting(process, options):
     process.scoutingPhotons = cms.EDProducer("ScoutingPhotonToCandidateProducer",
                                              src = cms.InputTag(options['PHOTON_COLL'])
                                              )
+    process.scoutingEgammaCandidates = cms.EDProducer("ScoutingEgammaToCandidateProducer",
+                                                      electrons = cms.InputTag(options['ELECTRON_COLL']),
+                                                      photons = cms.InputTag(options['PHOTON_COLL']),
+                                                      bestTrackCharge = cms.InputTag("scoutingElectronBestTrack", "Run3ScoutingElectronTrackcharge")
+                                                      )
     process.scoutingVertices = cms.EDProducer("ScoutingVertexToRecoVertexProducer",
                                               src = cms.InputTag(options['SCOUTING_VERTEX_COLL'])
                                               )
@@ -148,7 +153,14 @@ def setGoodParticlesScouting(process, options):
                                          src = cms.InputTag("scoutingPhotons"),
                                          cut = cms.string(options['PHOTON_CUTS'])
                                          )
-    process.sc_sequenceScouting = cms.Sequence()
+    process.goodScoutingEgammaCandidates = cms.EDProducer("TnPLeafCandidateRefSelector",
+                                                          src = cms.InputTag("scoutingEgammaCandidates"),
+                                                          cut = cms.string(options['SUPERCLUSTER_CUTS'])
+                                                          )
+    process.sc_sequenceScouting = cms.Sequence(
+        process.scoutingEgammaCandidates +
+        process.goodScoutingEgammaCandidates
+    )
 
 ###################################################################################
 ################  --- GOOD particles AOD

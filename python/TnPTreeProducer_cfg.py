@@ -54,7 +54,7 @@ log = getLogger(varOptions.logLevel)
 if varOptions.isAOD and varOptions.doEleID:    log.warning('AOD is not supported for doEleID, please consider using miniAOD')
 if varOptions.isAOD and varOptions.doPhoID:    log.warning('AOD is not supported for doPhoID, please consider using miniAOD')
 if varOptions.isAOD and varOptions.doTrigger:  log.warning('AOD is not supported for doTrigger, please consider using miniAOD')
-if not varOptions.isAOD and varOptions.doRECO: log.warning('miniAOD is not supported for doRECO, please consider using AOD')
+if not varOptions.isAOD and varOptions.doRECO and varOptions.objectBackend != 'scouting': log.warning('miniAOD is not supported for doRECO, please consider using AOD')
 
 valid_input_formats = ['miniaod', 'aod', 'hltscout']
 valid_object_backends = ['pat', 'gsf', 'scouting']
@@ -65,8 +65,6 @@ if varOptions.objectBackend not in valid_object_backends:
   log.error('%s is not a valid objectBackend' % varOptions.objectBackend)
 if varOptions.triggerBackend not in valid_trigger_backends:
   log.error('%s is not a valid triggerBackend' % varOptions.triggerBackend)
-if varOptions.objectBackend == 'scouting' and varOptions.doRECO:
-  log.warning('scouting backend currently supports doTrigger, doEleID, and doPhoID only; disabling doRECO')
 if varOptions.inputFormat == 'hltscout' and varOptions.objectBackend != 'scouting':
   log.error('hltscout inputFormat requires objectBackend=scouting')
 if varOptions.inputFormat == 'hltscout' and varOptions.triggerBackend == 'patTrigger':
@@ -137,8 +135,6 @@ options['DoTrigger']            = varOptions.doTrigger
 options['DoRECO']               = varOptions.doRECO
 options['DoEleID']              = varOptions.doEleID
 options['DoPhoID']              = varOptions.doPhoID
-if options['USE_SCOUTING_OBJECTS']:
-  options['DoRECO']             = False
 
 options['DEBUG']                = False 
 options['isMC']                 = varOptions.isMC
@@ -390,7 +386,20 @@ if not options['USE_SCOUTING_OBJECTS']:
           ),
 
                                       )
+else:
+  process.tnpEleReco = cms.EDAnalyzer("TagProbeFitTreeProducer",
+                                      mcTruthCommonStuff,
+                                      tnpVars.CommonStuffForScoutingRecoProbe,
+                                      tagProbePairs = cms.InputTag("tnpPairingEleRec"),
+                                      probeMatches  = cms.InputTag("genProbeSC"),
+                                      allProbes     = cms.InputTag("probeSC"),
+                                      flags         = cms.PSet(
+          passingRECO = cms.InputTag("probeSCEle")
+          ),
 
+                                      )
+
+if not options['USE_SCOUTING_OBJECTS']:
   process.tnpEleIDs = cms.EDAnalyzer("TagProbeFitTreeProducer",
                                       mcTruthCommonStuff,
                                       tnpVars.CommonStuffForGsfElectronProbe,
@@ -458,8 +467,7 @@ if options['addSUSY'] :
 tnpSetup.customize( process.tnpEleTrig , options )
 tnpSetup.customize( process.tnpEleIDs  , options )
 tnpSetup.customize( process.tnpPhoIDs  , options )
-if not options['USE_SCOUTING_OBJECTS']:
-  tnpSetup.customize( process.tnpEleReco , options )
+tnpSetup.customize( process.tnpEleReco , options )
 
 
 process.tree_sequence = cms.Sequence()

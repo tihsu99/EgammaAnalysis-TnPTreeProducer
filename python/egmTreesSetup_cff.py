@@ -111,7 +111,16 @@ def setTagsProbes(process, options):
       if options['useAOD'] : process.probePho = process.goodPhotons.clone()
 
     ######################### PROBE SCs #############################
-    if not options.get('USE_SCOUTING_OBJECTS', False):
+    if options.get('USE_SCOUTING_OBJECTS', False):
+      process.probeSC = cms.EDProducer("TnPLeafCandidateRefSelector",
+                                       src = cms.InputTag("goodScoutingEgammaCandidates"),
+                                       cut = cms.string("pt >= 0")
+                                       )
+      process.probeSCEle = cms.EDProducer("TnPLeafCandidateRefSelector",
+                                          src = cms.InputTag("probeSC"),
+                                          cut = cms.string("charge != 0")
+                                          )
+    else:
       process.probeSC     = cms.EDProducer("RecoEcalCandidateTriggerCandProducer",
                                               filterNames  = cms.vstring(options['TnPHLTProbeFilters']),
                                                inputs       = cms.InputTag("goodSuperClusters"),
@@ -153,7 +162,7 @@ def setTagsProbes(process, options):
         process.genProbeEle  = process.genTagEle.clone( src = cms.InputTag("probeEle") )
         if options.get('USE_SCOUTING_OBJECTS', False) or hasattr(process, 'probePho'):
           process.genProbePho  = process.genTagEle.clone( src = cms.InputTag("probePho") )
-        if not options.get('USE_SCOUTING_OBJECTS', False):
+        if hasattr(process, 'probeSC'):
           process.genProbeSC   = process.genTagEle.clone( src = cms.InputTag("probeSC")  )
 
 
@@ -165,10 +174,9 @@ def setTagsProbes(process, options):
                                         cut = masscut,
                                         )
 
-    if not options.get('USE_SCOUTING_OBJECTS', False):
-      process.tnpPairingEleRec             = process.tnpPairingEleHLT.clone()
-      process.tnpPairingEleRec.decay       = cms.string("tagEle probeSC" )
-      process.tnpPairingEleRec.checkCharge = cms.bool(False)
+    process.tnpPairingEleRec             = process.tnpPairingEleHLT.clone()
+    process.tnpPairingEleRec.decay       = cms.string("tagEle probeSC" )
+    process.tnpPairingEleRec.checkCharge = cms.bool(False)
 
     process.tnpPairingEleIDs             = process.tnpPairingEleHLT.clone()
     process.tnpPairingEleIDs.decay       = cms.string("tagEle probeEle")
@@ -205,6 +213,9 @@ def setSequences(process, options):
         import EgammaAnalysis.TnPTreeProducer.egmElectronIDModules_cff as egmEleID
         process.ele_sequence = egmEleID.setIDs(process, options)
         process.ele_sequence += cms.Sequence(process.probeEle)
+        process.sc_sequence += process.sc_sequenceScouting
+        process.sc_sequence += process.probeSC
+        process.sc_sequence += process.probeSCEle
     else:
         if options['useAOD'] : process.sc_sequence += process.sc_sequenceAOD
         else :                 process.sc_sequence += process.sc_sequenceMiniAOD
@@ -250,7 +261,7 @@ def setSequences(process, options):
         process.ele_sequence += process.genProbeEle
         if hasattr(process, 'genProbePho'):
             process.pho_sequence += process.genProbePho
-        if not options.get('USE_SCOUTING_OBJECTS', False):
+        if hasattr(process, 'genProbeSC'):
             process.sc_sequence  += process.genProbeSC
 
     if not options.get('USE_SCOUTING_OBJECTS', False):

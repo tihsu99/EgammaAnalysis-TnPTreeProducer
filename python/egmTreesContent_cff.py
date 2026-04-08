@@ -336,6 +336,19 @@ ScoutingPhoProbeVariablesToStore = cms.PSet(
 CommonStuffForScoutingPhotonProbe = CommonStuffForScoutingElectronProbe.clone()
 CommonStuffForScoutingPhotonProbe.variables = cms.PSet(ScoutingPhoProbeVariablesToStore)
 
+ScoutingRecoProbeVariablesToStore = cms.PSet(
+    sc_eta    = cms.string("eta"),
+    sc_phi    = cms.string("phi"),
+    sc_abseta = cms.string("abs(eta)"),
+    sc_pt     = cms.string("pt"),
+    sc_et     = cms.string("et"),
+    sc_e      = cms.string("energy"),
+    sc_q      = cms.string("charge"),
+)
+
+CommonStuffForScoutingRecoProbe = CommonStuffForScoutingElectronProbe.clone()
+CommonStuffForScoutingRecoProbe.variables = cms.PSet(ScoutingRecoProbeVariablesToStore)
+
 
 def getTnPVariablesForMCTruth(isMC=True):
     if isMC:
