@@ -311,6 +311,10 @@ if options['USE_SCOUTING_OBJECTS']:
   tnpVars.CommonStuffForScoutingPhotonProbe.vertexCollection = cms.InputTag("scoutingVertices")
   tnpVars.CommonStuffForScoutingElectronProbe.rho = cms.InputTag(options['SCOUTING_RHO'])
   tnpVars.CommonStuffForScoutingPhotonProbe.rho = cms.InputTag(options['SCOUTING_RHO'])
+  scoutingPileupInfoTag = cms.InputTag("addPileupInfo") if options['inputFormat'] == 'hltscout' else cms.InputTag("slimmedAddPileupInfo")
+  tnpVars.CommonStuffForScoutingElectronProbe.pileupInfoTag = scoutingPileupInfoTag
+  tnpVars.CommonStuffForScoutingPhotonProbe.pileupInfoTag = scoutingPileupInfoTag
+  tnpVars.CommonStuffForScoutingRecoProbe.pileupInfoTag = scoutingPileupInfoTag
 mcTruthCommonStuff = tnpVars.getTnPVariablesForMCTruth(options['isMC'])
 
 ###################################################################
