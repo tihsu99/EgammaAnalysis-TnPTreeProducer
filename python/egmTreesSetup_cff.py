@@ -20,7 +20,7 @@ def setTagsProbes(process, options):
         eleHLTProducer = 'ScoutingElectronTriggerCandProducer'
         gamHLTProducer = None
         if options['TRIGGER_OBJECT_COLL']:
-            hltObjects = options['TRIGGER_OBJECT_COLL']
+            hltObjects  = options['TRIGGER_OBJECT_COLL']
         else:
             hltObjects = 'hltTriggerSummaryAOD' if options['triggerBackend'] == 'triggerEvent' else 'slimmedPatTrigger'
         genParticles   = 'prunedGenParticles'
