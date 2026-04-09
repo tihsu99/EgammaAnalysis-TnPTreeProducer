@@ -57,7 +57,9 @@ private:
     if (workingPoint_ == "ScoutingElectronRecommendv1") {
       return passScoutingElectronRecommendv1(ele);
     }
-
+    if (workingPoint_ == "ScoutingPhotonRecommendv1") {
+      return passScoutingPhotonRecommendv1(ele);
+    }
     throw cms::Exception("Configuration")
         << "Unknown scouting electron working point: " << workingPoint_;
   }
@@ -70,6 +72,15 @@ private:
     } else {
       return (ele.sigmaIetaIeta() < 0.045f) && (ele.hOverE() < 0.2f) && (std::abs(ele.dEtaIn()) < 0.012f) &&
              (std::abs(ele.dPhiIn()) < 0.06f) && ((ele.ecalIso() / energy) < 0.1f) && ((ele.trackIso() / energy) < 0.001f);
+    }
+  }
+
+  bool passScoutingPhotonRecommendv1(const Run3ScoutingElectron& ele) const {
+    const float energy = std::max(1.f, static_cast<float>(ele.pt() * std::cosh(ele.eta())));
+    if (std::abs(ele.eta()) < 1.479f) {
+      return (ele.sigmaIetaIeta() < 0.015f) && (ele.hOverE() < 0.2f) && ((ele.ecalIso() / energy) < 0.25f);
+    } else {
+      return (ele.sigmaIetaIeta() < 0.045f) && (ele.hOverE() < 0.2f) && ((ele.ecalIso() / energy) < 0.1f);
     }
   }
 
