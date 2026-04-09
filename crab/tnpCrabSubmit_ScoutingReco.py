@@ -2,13 +2,13 @@
 import copy
 import os
 
-from CRABClient.UserUtilities import config, getUsernameFromCRIC
+from CRABClient.UserUtilities import config
 
 
 submitVersion = "2026-04-09_scoutingReco"
 storageSite = "T2_TW_NCHC"
 workArea = f"crab_{submitVersion}"
-outLFNDirBase = f"/store/user/{getUsernameFromCRIC()}/TnPTreeProducer/{submitVersion}"
+outLFNDirBase = f"/store/user/{os.environ['USER']}/TnPTreeProducer/{submitVersion}"
 
 MC_DATASET = "/DYto2E-2Jets_Bin-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24MiniAODv6-150X_mcRun3_2024_realistic_v2-v4/MINIAODSIM"
 DATA_DATASET = "/ScoutingPFRun3/Run2024F-v1/HLTSCOUT"
