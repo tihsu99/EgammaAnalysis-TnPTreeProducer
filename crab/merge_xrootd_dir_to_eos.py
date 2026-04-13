@@ -9,6 +9,8 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse
 
+from tqdm import tqdm
+
 
 def run(cmd):
     return subprocess.run(cmd, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -109,19 +111,21 @@ def main():
                 executor.submit(hadd_chunk, chunk_id, chunk_files, workdir): chunk_id
                 for chunk_id, chunk_files in enumerate(chunks)
             }
-            for future in as_completed(futures):
-                chunk_id = futures[future]
-                partial = future.result()
-                partials.append(partial)
-                print(f"Finished partial {chunk_id}: {partial}")
+            with tqdm(total=len(chunks), desc="partial hadd", unit="chunk") as pbar:
+                for future in as_completed(futures):
+                    chunk_id = futures[future]
+                    partial = future.result()
+                    partials.append(partial)
+                    pbar.update(1)
+                    tqdm.write(f"Finished partial {chunk_id}: {partial}")
 
         partials = sorted(partials)
-        print(f"Merging {len(partials)} partial file(s) into {final_local}")
+        tqdm.write(f"Merging {len(partials)} partial file(s) into {final_local}")
         run(["hadd", "-f", "-k", final_local] + partials)
 
-        print(f"Copying merged file to {args.destination}")
+        tqdm.write(f"Copying merged file to {args.destination}")
         copy_to_destination(final_local, args.destination, overwrite=args.overwrite)
-        print("Done")
+        tqdm.write("Done")
     finally:
         if cleanup_workdir and not args.keep_partials and os.path.isdir(workdir):
             shutil.rmtree(workdir)
