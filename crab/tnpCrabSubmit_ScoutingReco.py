@@ -11,7 +11,9 @@ workArea = f"crab_{submitVersion}"
 outLFNDirBase = f"/store/user/{os.environ['USER']}/TnPTreeProducer/{submitVersion}"
 
 MC_DATASET = "/DYto2E-2Jets_Bin-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24MiniAODv6-150X_mcRun3_2024_realistic_v2-v4/MINIAODSIM"
+MC_LO_DATASET = "/DYto2E-4Jets_Bin-MLL-50_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24MiniAOD-140X_mcRun3_2024_realistic_v26-v3/MINIAODSIM"
 DATA_DATASET = "/ScoutingPFRun3/Run2024F-v1/HLTSCOUT"
+DATA_MINIAOD_DATASET = "/ScoutingPFMonitor/Run2024F-PromptReco-v1/MINIAOD"
 
 
 def get_lumi_mask(era):
@@ -42,10 +44,10 @@ def write_config(filename, crab_config):
         print(crab_config, file=out)
 
 
-def make_mc_config():
+def make_mc_config(request_name, dataset):
     cfg = copy.deepcopy(base)
-    cfg.General.requestName = "mc_scoutingReco_2024"
-    cfg.Data.inputDataset = MC_DATASET
+    cfg.General.requestName = request_name
+    cfg.Data.inputDataset = dataset
     cfg.Data.splitting = "FileBased"
     cfg.Data.unitsPerJob = 5
     cfg.JobType.pyCfgParams = [
@@ -68,9 +70,9 @@ def make_mc_config():
     return cfg
 
 
-def make_data_config():
+def make_data_hltscout_config():
     cfg = copy.deepcopy(base)
-    cfg.General.requestName = "data_scoutingReco_2024F"
+    cfg.General.requestName = "data_hltscout_scoutingReco_2024F"
     cfg.Data.inputDataset = DATA_DATASET
     cfg.Data.lumiMask = get_lumi_mask("2024")
     cfg.Data.splitting = "LumiBased"
@@ -95,32 +97,79 @@ def make_data_config():
     return cfg
 
 
-def write_helper_scripts(config_names):
+def make_data_miniaod_config():
+    cfg = copy.deepcopy(base)
+    cfg.General.requestName = "data_miniaod_scoutingReco_2024F"
+    cfg.Data.inputDataset = DATA_MINIAOD_DATASET
+    cfg.Data.lumiMask = get_lumi_mask("2024")
+    cfg.Data.splitting = "FileBased"
+    cfg.Data.unitsPerJob = 5
+    cfg.JobType.pyCfgParams = [
+        "inputFormat=miniaod",
+        "objectBackend=scouting",
+        "triggerBackend=patTrigger",
+        "isMC=False",
+        "doTrigger=False",
+        "doEleID=True",
+        "doPhoID=True",
+        "doRECO=True",
+        "era=2024",
+        "HLTname=HLT",
+        "triggerObjectCollection=slimmedPatTrigger",
+        "scoutingElectronCollection=hltScoutingEgammaPacker",
+        "scoutingPhotonCollection=hltScoutingEgammaPacker",
+        "scoutingVertexCollection=hltScoutingPrimaryVertexPacker:primaryVtx",
+        "scoutingRho=hltScoutingPFPacker:rho",
+        "requireTriggerObjectMatch=False",
+    ]
+    return cfg
+
+
+def write_helper_scripts(config_names, request_names):
     with open("crab_sub.sh", "w") as sub:
         for name in config_names:
             sub.write(f"crab submit -c {name}\n")
 
     with open("crab_status.sh", "w") as status:
-        for request_name in ["mc_scoutingReco_2024", "data_scoutingReco_2024F"]:
+        for request_name in request_names:
             status.write(f"crab status -d {workArea}/crab_{request_name} --verboseErrors\n")
 
     with open("crab_resub.sh", "w") as resub:
-        for request_name in ["mc_scoutingReco_2024", "data_scoutingReco_2024F"]:
+        for request_name in request_names:
             resub.write(f"crab resubmit -d {workArea}/crab_{request_name}\n")
 
 
 def main():
-    mc_cfg_name = "crab_submit_mc_scoutingReco_2024.py"
-    data_cfg_name = "crab_submit_data_scoutingReco_2024F.py"
+    configs = [
+        (
+            "crab_submit_mc_nlo_scoutingReco_2024.py",
+            make_mc_config("mc_nlo_scoutingReco_2024", MC_DATASET),
+        ),
+        (
+            "crab_submit_mc_lo_scoutingReco_2024.py",
+            make_mc_config("mc_lo_scoutingReco_2024", MC_LO_DATASET),
+        ),
+        (
+            "crab_submit_data_hltscout_scoutingReco_2024F.py",
+            make_data_hltscout_config(),
+        ),
+        (
+            "crab_submit_data_miniaod_scoutingReco_2024F.py",
+            make_data_miniaod_config(),
+        ),
+    ]
 
-    write_config(mc_cfg_name, make_mc_config())
-    write_config(data_cfg_name, make_data_config())
-    write_helper_scripts([mc_cfg_name, data_cfg_name])
+    for filename, cfg in configs:
+        write_config(filename, cfg)
+        print(f"Wrote {filename}")
 
-    print(f"Wrote {mc_cfg_name}")
-    print(f"Wrote {data_cfg_name}")
+    write_helper_scripts(
+        [filename for filename, _ in configs],
+        [cfg.General.requestName for _, cfg in configs],
+    )
+
     print("Wrote crab_sub.sh, crab_status.sh, crab_resub.sh")
-    print("Review DATA_DATASET before submission if your DAS name differs.")
+    print("Review dataset names and unitsPerJob before submission if you want different splitting.")
 
 
 if __name__ == "__main__":
