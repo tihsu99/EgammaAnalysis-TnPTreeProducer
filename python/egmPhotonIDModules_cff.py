@@ -23,6 +23,7 @@ def setIDs(process, options):
         probeSequence = cms.Sequence()
 
         addNewScoutingProbeModule(probeSequence, 'ScoutingPhotonRecommendv1', 'ScoutingPhotonRecommendv1')
+        addNewScoutingProbeModule(probeSequence, 'ScoutingPhotonCustomizev1', 'ScoutingPhotonCustomizev1')
 
         return probeSequence
 

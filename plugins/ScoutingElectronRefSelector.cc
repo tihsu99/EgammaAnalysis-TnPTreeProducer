@@ -57,8 +57,14 @@ private:
     if (workingPoint_ == "ScoutingElectronRecommendv1") {
       return passScoutingElectronRecommendv1(ele);
     }
+    if (workingPoint_ == "ScoutingElectronCustomizev1") {
+      return passScoutingElectronCustomizev1(ele);
+    }
     if (workingPoint_ == "ScoutingPhotonRecommendv1") {
       return passScoutingPhotonRecommendv1(ele);
+    }
+    if (workingPoint_ == "ScoutingPhotonCustomizev1") {
+      return passScoutingPhotonCustomizev1(ele);
     }
     throw cms::Exception("Configuration")
         << "Unknown scouting electron working point: " << workingPoint_;
@@ -75,12 +81,36 @@ private:
     }
   }
 
+  bool passScoutingElectronCustomizev1(const Run3ScoutingElectron& ele) const {
+    const float energy = std::max(1.f, static_cast<float>(ele.pt() * std::cosh(ele.eta())));
+    if (!passScoutingElectronRecommendv1(ele)) {
+      return false;
+    }
+    if (std::abs(ele.eta()) < 1.479f) {
+      return (ele.hcalIso() / energy) < 0.4f;
+    } else {
+      return (ele.hcalIso() / energy) < 0.6f;
+    }
+  }
+
   bool passScoutingPhotonRecommendv1(const Run3ScoutingElectron& ele) const {
     const float energy = std::max(1.f, static_cast<float>(ele.pt() * std::cosh(ele.eta())));
     if (std::abs(ele.eta()) < 1.479f) {
       return (ele.sigmaIetaIeta() < 0.015f) && (ele.hOverE() < 0.2f) && ((ele.ecalIso() / energy) < 0.25f);
     } else {
       return (ele.sigmaIetaIeta() < 0.045f) && (ele.hOverE() < 0.2f) && ((ele.ecalIso() / energy) < 0.1f);
+    }
+  }
+
+  bool passScoutingPhotonCustomizev1(const Run3ScoutingElectron& ele) const {
+    const float energy = std::max(1.f, static_cast<float>(ele.pt() * std::cosh(ele.eta())));
+    if (!passScoutingPhotonRecommendv1(ele)) {
+      return false;
+    }
+    if (std::abs(ele.eta()) < 1.479f) {
+      return (ele.hcalIso() / energy) < 0.6f;
+    } else {
+      return (ele.hcalIso() / energy) < 1.0f;
     }
   }
 

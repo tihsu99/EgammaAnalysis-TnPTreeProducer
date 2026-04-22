@@ -56,7 +56,10 @@ private:
   bool passWorkingPoint(const Run3ScoutingPhoton& pho) const {
     if (workingPoint_ == "ScoutingPhotonRecommendv1") {
       return passScoutingPhotonRecommendv1(pho);
-     }
+    }
+    if (workingPoint_ == "ScoutingPhotonCustomizev1") {
+      return passScoutingPhotonCustomizev1(pho);
+    }
     throw cms::Exception("Configuration")
         << "Unknown scouting photon working point: " << workingPoint_;
   }
@@ -67,6 +70,18 @@ private:
       return (pho.sigmaIetaIeta() < 0.015f) && (pho.hOverE() < 0.2f) && ((pho.ecalIso() / energy) < 0.25f);
     } else {
       return (pho.sigmaIetaIeta() < 0.045f) && (pho.hOverE() < 0.2f) && ((pho.ecalIso() / energy) < 0.1f);
+    }
+  }
+
+  bool passScoutingPhotonCustomizev1(const Run3ScoutingPhoton& pho) const {
+    const float energy = std::max(1.f, static_cast<float>(pho.pt() * std::cosh(pho.eta())));
+    if (!passScoutingPhotonRecommendv1(pho)) {
+      return false;
+    }
+    if (std::abs(pho.eta()) < 1.479f) {
+      return (pho.hcalIso() / energy) < 0.6f;
+    } else {
+      return (pho.hcalIso() / energy) < 1.0f;
     }
   }
 
