@@ -75,12 +75,12 @@ def main():
     if args.chunk_size <= 0:
         raise ValueError("--chunk-size must be > 0")
 
+    args.workdir = args.destination
+
     os.makedirs(args.workdir, exist_ok=True)
     files = list_remote_root_files(args.remote_dir)
     if not files:
         raise RuntimeError(f"No ROOT files found under {args.remote_dir}")
-
-    args.worker = args.destination
 
     chunks = chunk_list(files, args.chunk_size)
     print(f"Found {len(files)} ROOT files")
@@ -97,7 +97,6 @@ def main():
     if args.overwrite and os.path.exists(final_local):
         os.remove(final_local)
 
-    os.makedirs(os.path.dirname(args.workdir), exist_ok=True)
 
     for chunk_id, chunk in enumerate(tqdm(chunks, desc="chunks", unit="chunk"), start=1):
         chunk_dir = os.path.join(args.workdir, f"chunk_{chunk_id:04d}")
