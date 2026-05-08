@@ -97,6 +97,8 @@ def main():
     if args.overwrite and os.path.exists(final_local):
         os.remove(final_local)
 
+    os.makedirs(os.path.dirname(args.workdir), exist_ok=True)
+
     for chunk_id, chunk in enumerate(tqdm(chunks, desc="chunks", unit="chunk"), start=1):
         chunk_dir = os.path.join(args.workdir, f"chunk_{chunk_id:04d}")
         os.makedirs(chunk_dir, exist_ok=True)
