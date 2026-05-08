@@ -63,7 +63,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Stage in ROOT files chunk-by-chunk from xrootd, merge locally, and copy the final file to EOS."
     )
-    parser.add_argument("remote_dir", help="Remote xrootd directory, e.g. root://se01.nchc.grid.org.tw//store/...")
+    parser.add_argument("remote_dir", help="Remote xrootd directory, e.g. root://se01.grid.nchc.org.tw//store/...")
     parser.add_argument("destination", help="Output file on EOS, either /eos/... or root://eosuser.cern.ch//eos/...")
     parser.add_argument("--chunk-size", type=int, default=100, help="Number of input files per partial hadd")
     parser.add_argument("--workdir", required=True, help="Working directory with enough free space")
@@ -79,6 +79,8 @@ def main():
     files = list_remote_root_files(args.remote_dir)
     if not files:
         raise RuntimeError(f"No ROOT files found under {args.remote_dir}")
+
+    args.worker = args.destination
 
     chunks = chunk_list(files, args.chunk_size)
     print(f"Found {len(files)} ROOT files")
@@ -118,8 +120,8 @@ def main():
     tqdm.write(f"Final hadd of {len(partials)} partial file(s) -> {final_local}")
     run(["hadd", "-f", "-k", final_local] + partials)
 
-    tqdm.write(f"Copying merged file to {args.destination}")
-    copy_to_destination(final_local, args.destination, overwrite=args.overwrite)
+    # tqdm.write(f"Copying merged file to {args.destination}")
+    # copy_to_destination(final_local, args.destination, overwrite=args.overwrite)
     tqdm.write("Done")
 
 
