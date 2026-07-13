@@ -27,8 +27,8 @@ registerOption('doRECO',      False,    'Include tree for Reco SF (requires AOD)
 registerOption('calibEn',     False,    'Use EGM smearer to calibrate photon and electron energy')
 registerOption('includeSUSY', False,    'Add also the variables used by SUSY')
 
-#registerOption('HLTname',     'HLT',    'HLT process name (default HLT)', optionType=VarParsing.varType.string) # HLTname was HLT2 in now outdated reHLT samples
-registerOption('HLTname',     'MYHLT',    'HLT process name', optionType=VarParsing.varType.string) # Modified
+registerOption('HLTname',     'HLT',    'HLT process name (default HLT)', optionType=VarParsing.varType.string) # HLTname was HLT2 in now outdated reHLT samples
+#registerOption('HLTname',     'MYHLT',    'HLT process name', optionType=VarParsing.varType.string) # Modified
 registerOption('GT',          'auto',   'Global Tag to be used', optionType=VarParsing.varType.string)
 registerOption('era',         '2018',   'Data-taking era: 2016, 2017, 2018, 2022, 2023, 2023preBPIX, 2023postBPIX, 2024, 2025, 2026, UL2017 or UL2018', optionType=VarParsing.varType.string)
 registerOption('logLevel',    'INFO',   'Loglevel: could be DEBUG, INFO, WARNING, ERROR', optionType=VarParsing.varType.string)
@@ -113,7 +113,7 @@ if varOptions.GT == "auto":
     if options['era'] == '2023postBPIX': options['GLOBALTAG'] = '130X_mcRun3_2023_realistic_postBPix_v2'
     if options['era'] == '2024': options['GLOBALTAG'] = '140X_mcRun3_2024_realistic_v14'
     if options['era'] == '2025': options['GLOBALTAG'] = '150X_mcRun3_2025_realistic_v14'
-    if options['era'] == '2026': options['GLOBALTAG'] = '160X_mcRun3_2026_realistic_v14' # To Be checked
+    if options['era'] == '2026': options['GLOBALTAG'] = '160X_mcRun3_2026_realistic_v14'
   else:
     if options['era'] == '2016':   options['GLOBALTAG'] = '94X_dataRun2_v10'
     if options['era'] == '2017':   options['GLOBALTAG'] = '94X_dataRun2_v11'
@@ -138,7 +138,18 @@ log.info('Globaltag: %s' % options['GLOBALTAG'])
 
 #Filters used in different paths
 #HLT_Ele30_WPTight_Gsf
-ele30_allFilters = {'passHLTEG30L1SingleEGOrEtFilter': cms.vstring('hltEG30L1SingleEGOrEtFilter'), 'passHLTEle30WPTightClusterShapeFilter': cms.vstring('hltEle30WPTightClusterShapeFilter'), 'passHLTEle30WPTightHEFilter': cms.vstring('hltEle30WPTightHEFilter'), 'passHLTEle30WPTightEcalIsoFilter': cms.vstring('hltEle30WPTightEcalIsoFilter'), 'passHLTEle30WPTightHcalIsoFilter': cms.vstring('hltEle30WPTightHcalIsoFilter'), 'passHLTEle30WPTightPixelMatchFilter': cms.vstring('hltEle30WPTightPixelMatchFilter'), 'passHLTEle30WPTightPMS2Filter': cms.vstring('hltEle30WPTightPMS2Filter'), 'passHLTEle30WPTightGsfOneOEMinusOneOPFilter': cms.vstring('hltEle30WPTightGsfOneOEMinusOneOPFilter'), 'passHLTEle30WPTightGsfMissingHitsFilter': cms.vstring('hltEle30WPTightGsfMissingHitsFilter'), 'passHLTEle30WPTightGsfDetaFilter': cms.vstring('hltEle30WPTightGsfDetaFilter'), 'passHLTEle30WPTightGsfDphiFilter': cms.vstring('hltEle30WPTightGsfDphiFilter'), 'passHLTEle30WPTightGsfTrackIsoFilter': cms.vstring('hltEle30WPTightGsfTrackIsoFilter')}
+ele30_allFilters = {'passHLTEG30L1SingleEGOrEtFilter': cms.vstring('hltEG30L1SingleEGOrEtFilter'), 'passHLTEle30WPTightClusterShapeFilter': cms.vstring('hltEle30WPTightClusterShapeFilter'), 'passHLTEle30WPTightHEFilter': cms.vstring('hltEle30WPTightHEFilter'), 'passHLTEle30WPTightEcalIsoFilter': cms.vstring('hltEle30WPTightEcalIsoFilter'), 'passHLTEle30WPTightHcalIsoFilter': cms.vstring('hltEle30WPTightHcalIsoFilter'), 'passHLTEle30WPTightPixelMatchFilter': cms.vstring('hltEle30WPTightPixelMatchFilter'), 'passHLTEle30WPTightPMS2Filter': cms.vstring('hltEle30WPTightPMS2Filter'), 'passHLTEle30WPTightGsfOneOEMinusOneOPFilter': cms.vstring('hltEle30WPTightGsfOneOEMinusOneOPFilter'), 'passHLTEle30WPTightGsfMissingHitsFilter': cms.vstring('hltEle30WPTightGsfMissingHitsFilter'), 'passHLTEle30WPTightGsfDetaFilter': cms.vstring('hltEle30WPTightGsfDetaFilter'), 'passHLTEle30WPTightGsfDphiFilter': cms.vstring('hltEle30WPTightGsfDphiFilter'), 'passHLTEle30WPTightGsfTrackIsoL1matchFilter': cms.vstring('hltEle30WPTightGsfTrackIsoFilter')}
+
+
+other_allFilters = {
+  "passhltEle23CaloIdLTrackIdLIsoVLTrackIsoFilter": cms.vstring('hltEle23CaloIdLTrackIdLIsoVLTrackIsoFilter'),
+  "passhltEle20CaloIdLTrackIdLIsoVLTrackIsoFilter": cms.vstring('hltEle20CaloIdLTrackIdLIsoVLTrackIsoFilter'),
+  "passhltEle20CaloIdLTrackIdLDphiFilter": cms.vstring('hltEle20CaloIdLTrackIdLDphiFilter'),
+  "passhltEle23CaloIdLTrackIdLDphiFilter": cms.vstring('hltEle23CaloIdLTrackIdLDphiFilter'),
+  "passhltEle20WPTightGsfTrackIsoFilter": cms.vstring('hltEle20WPTightGsfTrackIsoFilter'),
+  "passhltEle23WPTightGsfTrackIsoFilter": cms.vstring('hltEle23WPTightGsfTrackIsoFilter')
+  
+}
 
 #HLT_Ele32_WPTight_Gsf
 ele32_allFilters = {'passHLTEG32L1SingleEGOrEtFilter': cms.vstring('hltEG32L1SingleEGOrEtFilter'), 'passHLTEle32WPTightClusterShapeFilter': cms.vstring('hltEle32WPTightClusterShapeFilter'), 'passHLTEle32WPTightHEFilter': cms.vstring('hltEle32WPTightHEFilter'), 'passHLTEle32WPTightEcalIsoFilter': cms.vstring('hltEle32WPTightEcalIsoFilter'), 'passHLTEle32WPTightHcalIsoFilter': cms.vstring('hltEle32WPTightHcalIsoFilter'), 'passHLTEle32WPTightPixelMatchFilter': cms.vstring('hltEle32WPTightPixelMatchFilter'), 'passHLTEle32WPTightPMS2Filter': cms.vstring('hltEle32WPTightPMS2Filter'), 'passHLTEle32WPTightGsfOneOEMinusOneOPFilter': cms.vstring('hltEle32WPTightGsfOneOEMinusOneOPFilter'), 'passHLTEle32WPTightGsfMissingHitsFilter': cms.vstring('hltEle32WPTightGsfMissingHitsFilter'), 'passHLTEle32WPTightGsfDetaFilter': cms.vstring('hltEle32WPTightGsfDetaFilter'), 'passHLTEle32WPTightGsfDphiFilter': cms.vstring('hltEle32WPTightGsfDphiFilter'), 'passHLTEle32WPTightGsfTrackIsoFilter': cms.vstring('hltEle32WPTightGsfTrackIsoFilter')}
@@ -150,13 +161,78 @@ ele115_allFilters = {'passHLTEGL1SingleEGNonIsoOrWithJetAndTauFilter': cms.vstri
 ele135_allFilters = {'passHLTEG135EtFilter': cms.vstring('hltEG135EtFilter'), 'passHLTEG135CaloIdVTClusterShapeFilter': cms.vstring('hltEG135CaloIdVTClusterShapeFilter'), 'passHLTEG135CaloIdVTHEFilter': cms.vstring('hltEG135CaloIdVTHEFilter'), 'passHLTEle135CaloIdVTPixelMatchFilter': cms.vstring('hltEle135CaloIdVTPixelMatchFilter'), 'passHLTEle135CaloIdVTGsfTrkIdTGsfDetaFilter': cms.vstring('hltEle135CaloIdVTGsfTrkIdTGsfDetaFilter'), 'passHLTEle135CaloIdVTGsfTrkIdTGsfDphiFilter': cms.vstring('hltEle135CaloIdVTGsfTrkIdTGsfDphiFilter')}
 
 #HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL
-ele23ele12_allFilters = {'passHLTEGL1SingleAndDoubleEGOrPairFilter': cms.vstring('hltEGL1SingleAndDoubleEGOrPairFilter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLEtLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLEtLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLEtLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLEtLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLClusterShapeLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLClusterShapeLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLClusterShapeLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLClusterShapeLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLHELeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLHELeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLHELeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLHELeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLEcalIsoLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLEcalIsoLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLEcalIsoLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLEcalIsoLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLHcalIsoLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLHcalIsoLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLHcalIsoLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLHcalIsoLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLPixelMatchLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLPixelMatchLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLPixelMatchLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLPixelMatchLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLOneOEMinusOneOPLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLOneOEMinusOneOPLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLOneOEMinusOneOPLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLOneOEMinusOneOPLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLDetaLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLDetaLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLDetaLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLDetaLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLDphiLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLDphiLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLDphiLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLDphiLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLTrackIsoLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLTrackIsoLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLTrackIsoLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLTrackIsoLeg2Filter')}
+ele23ele12_allFilters = {'passHLTEGL1SingleAndDoubleEGOrPairFilter': cms.vstring('hltEGL1SingleAndDoubleEGOrPairFilter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLEtLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLEtLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLEtLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLEtLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLClusterShapeLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLClusterShapeLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLClusterShapeLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLClusterShapeLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLHELeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLHELeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLHELeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLHELeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLEcalIsoLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLEcalIsoLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLEcalIsoLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLEcalIsoLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLHcalIsoLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLHcalIsoLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLHcalIsoLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLHcalIsoLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLPixelMatchLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLPixelMatchLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLPixelMatchLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLPixelMatchLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLOneOEMinusOneOPLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLOneOEMinusOneOPLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLOneOEMinusOneOPLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLOneOEMinusOneOPLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLDetaLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLDetaLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLDetaLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLDetaLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLDphiLeg1Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLDphiLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLDphiLeg2Filter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLDphiLeg2Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLTrackIsoLeg1L1matchFilter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLTrackIsoLeg1Filter'), 'passHLTEle23Ele12CaloIdLTrackIdLIsoVLTrackIsoLeg2L1matchFilter': cms.vstring('hltEle23Ele12CaloIdLTrackIdLIsoVLTrackIsoLeg2Filter')}
 
 #HLT_DoubleEle33_CaloIdL_MW
 doubleEle33_leg1_allFilters = {'passHLTEGL1SingleAndDoubleEGNonIsoOrWithEG26WithJetAndTauFilter': cms.vstring('hltEGL1SingleAndDoubleEGNonIsoOrWithEG26WithJetAndTauFilter'), 'passHLTEG33EtFilter': cms.vstring('hltEG33EtFilter'), 'passHLTEG33HEFilter': cms.vstring('hltEG33HEFilter'), 'passHLTEG33CaloIdLClusterShapeFilter': cms.vstring('hltEG33CaloIdLClusterShapeFilter'), 'passHLTEle33CaloIdLPixelMatchFilter': cms.vstring('hltEle33CaloIdLPixelMatchFilter'), 'passHLTEle33CaloIdLMWPMS2Filter': cms.vstring('hltEle33CaloIdLMWPMS2Filter')}
 
 #HLT_DoubleEle33_CaloIdL_MW
 doubleEle33_leg2_allFilters = {'passHLTDiEG33EtUnseededFilter': cms.vstring('hltDiEG33EtUnseededFilter'), 'passHLTDiEG33HEUnseededFilter': cms.vstring('hltDiEG33HEUnseededFilter'), 'passHLTDiEG33CaloIdLClusterShapeUnseededFilter': cms.vstring('hltDiEG33CaloIdLClusterShapeUnseededFilter'), 'passHLTDiEle33CaloIdLPixelMatchUnseededFilter': cms.vstring('hltDiEle33CaloIdLPixelMatchUnseededFilter'), 'passHLTDiEle33CaloIdLMWPMS2UnseededFilter': cms.vstring('hltDiEle33CaloIdLMWPMS2UnseededFilter')}
+
+singleEG18_allFilters = {
+    'passHLTsingleEG18L1MatchFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30L1MatchFilter'),
+    'passHLTsingleEG18EtFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30EtFilter'),
+    'passHLTsingleEG18ClusterShapeFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30ClusterShapeFilter'),
+    'passHLTsingleEG18HEFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30HEFilter'),
+    'passHLTsingleEG18EcalIsoFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30EcalIsoFilter'),
+    'passHLTsingleEG18HcalIsoFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30HcalIsoFilter'),
+    'passHLTsingleEG18PixelMatchFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30PixelMatchFilter'),
+    'passHLTsingleEG18OoEMOoPFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30OneOEMinusOneOPFilter'),
+    'passHLTsingleEG18DetaFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30DetaFilter'),
+    'passHLTsingleEG18DphiFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30DphiFilter'),
+    'passHLTsingleEG18TrackIsoL1matchFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30TrackIsoFilter'),
+}
+
+
+singleEG20_allFilters = {
+    'passHLTsingleEG20L1matchFilter': cms.vstring('hltEle20CaloIdLTrackIdLIsoVLJet30L1MatchFilter'),
+    'passHLTsingleEG20EtFilter': cms.vstring('hltEle20CaloIdLTrackIdLIsoVLJet30EtFilter'),
+    'passHLTsingleEG20ClusterShapeFilter': cms.vstring('hltEle20CaloIdLTrackIdLIsoVLJet30ClusterShapeFilter'),
+    'passHLTsingleEG20HEFilter': cms.vstring('hltEle20CaloIdLTrackIdLIsoVLJet30HEFilter'),
+    'passHLTsingleEG20EcalIsoFilter': cms.vstring('hltEle20CaloIdLTrackIdLIsoVLJet30EcalIsoFilter'),
+    'passHLTsingleEG20HcalIsoFilter': cms.vstring('hltEle20CaloIdLTrackIdLIsoVLJet30HcalIsoFilter'),
+    'passHLTsingleEG20PixelMatchFilter': cms.vstring('hltEle20CaloIdLTrackIdLIsoVLJet30PixelMatchFilter'),
+    'passHLTsingleEG20OoEMOoPFilter': cms.vstring('hltEle20CaloIdLTrackIdLIsoVLJet30OneOEMinusOneOPFilter'),
+    'passHLTsingleEG20DetaFilter': cms.vstring('hltEle20CaloIdLTrackIdLIsoVLJet30DetaFilter'),
+    'passHLTsingleEG20DphiFilter': cms.vstring('hltEle20CaloIdLTrackIdLIsoVLJet30DphiFilter'),
+    'passHLTsingleEG20TrackIsoL1matchFilter': cms.vstring('hltEle20CaloIdLTrackIdLIsoVLJet30TrackIsoFilter'),
+}
+
+
+singleEG23_allFilters = {
+    'passHLTsingleEG23L1Filter': cms.vstring('hltL1sSingleEG20er2p5'),
+    'passHLTsingleEG23L1matchFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLL1MatchFilter'),
+    'passHLTsingleEG23EtFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLEtFilter'),
+    'passHLTsingleEG23ClusterShapeFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLClusterShapeFilter'),
+    'passHLTsingleEG23HEFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLHEFilter'),
+    'passHLTsingleEG23EcalIsoFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLEcalIsoFilter'),
+    'passHLTsingleEG23HcalIsoFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLHcalIsoFilter'),
+    'passHLTsingleEG23PixelMatchFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLPixelMatchFilter'),
+    'passHLTsingleEG23OoEMOoPFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLOneOEMinusOneOPFilter'),
+    'passHLTsingleEG23DetaFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLDetaFilter'),
+    'passHLTsingleEG23DphiFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLDphiFilter'),
+    'passHLTsingleEG23TrackIsoFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLTrackIsoFilter'),
+}
+
+singleEG25_allFilters = {
+    'passHLTsingleEG25L1matchFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30L1MatchFilter'),
+    'passHLTsingleEG25EtFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30EtFilter'),
+    'passHLTsingleEG25ClusterShapeFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30ClusterShapeFilter'),
+    'passHLTsingleEG25HEFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30HEFilter'),
+    'passHLTsingleEG25EcalIsoFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30EcalIsoFilter'),
+    'passHLTsingleEG25HcalIsoFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30HcalIsoFilter'),
+    'passHLTsingleEG25PixelMatchFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30PixelMatchFilter'),
+    'passHLTsingleEG25OoEMOoPFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30OneOEMinusOneOPFilter'),
+    'passHLTsingleEG25DetaFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30DetaFilter'),
+    'passHLTsingleEG25DphiFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30DphiFilter'),
+    'passHLTsingleEG25TrackIsoL1matchFilter': cms.vstring('hltEle23CaloIdLTrackIdLIsoVLJet30TrackIsoFilter'),
+}
+
+
+singlePhoton_allFilters = {
+    'passHLTEG30L1SingleEG20L1Filter': cms.vstring('hltL1sSingleEG20er2p5'),
+    'passHLTEG30L1SingleEG20HEFilterLooseHoverE': cms.vstring('hltEG30L1SingleEG20HEFilterLooseHoverE')
+}
 
 
 if '2016' in options['era']:
@@ -199,16 +275,20 @@ else:#Run-3
   options['TnPHLTProbeFilters'] = cms.vstring()
   options['HLTFILTERSTOMEASURE']= {}
   options['HLTFILTERSTOMEASURE'].update(ele30_allFilters)
+  options['HLTFILTERSTOMEASURE'].update(other_allFilters)
   options['HLTFILTERSTOMEASURE'].update(ele32_allFilters)
   options['HLTFILTERSTOMEASURE'].update(ele115_allFilters)
   options['HLTFILTERSTOMEASURE'].update(ele135_allFilters)
   options['HLTFILTERSTOMEASURE'].update(ele23ele12_allFilters)
   options['HLTFILTERSTOMEASURE'].update(doubleEle33_leg1_allFilters)
   options['HLTFILTERSTOMEASURE'].update(doubleEle33_leg2_allFilters)
+  options['HLTFILTERSTOMEASURE'].update(singleEG23_allFilters)
+  options['HLTFILTERSTOMEASURE'].update(singlePhoton_allFilters)
 
 # Apply L1 matching (using L1Threshold) when flag contains "L1match" in name
 options['ApplyL1Matching']      = any(['L1match' in flag for flag in options['HLTFILTERSTOMEASURE'].keys()])
 options['L1Threshold']          = varOptions.L1Threshold
+print("ApplyL1Matching: ", options['ApplyL1Matching'], "L1Threshold", options['L1Threshold'])
 
 
 ###################################################################
@@ -268,19 +348,6 @@ mcTruthCommonStuff = tnpVars.getTnPVariablesForMCTruth(options['isMC'])
 ###################################################################
 import EgammaAnalysis.TnPTreeProducer.egmTreesSetup_cff as tnpSetup
 tnpSetup.setupTreeMaker(process,options)
-
-# Override the default 50-130 GeV tag-and-probe mass window.
-pairMassCut = cms.string(
-    '%g<mass<%g' % (varOptions.pairMassMin, varOptions.pairMassMax)
-)
-
-for pairingName in (
-    'tnpPairingEleHLT',
-    'tnpPairingEleRec',
-    'tnpPairingEleIDs',
-    'tnpPairingPhoIDs',
-):
-  getattr(process, pairingName).cut = pairMassCut
 
 ###################################################################
 # If miniAOD, adding some leptonMva versions, as well

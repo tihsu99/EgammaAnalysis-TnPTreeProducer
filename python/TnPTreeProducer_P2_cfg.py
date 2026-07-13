@@ -30,8 +30,22 @@ registerOption('includeSUSY', False,    'Add also the variables used by SUSY')
 #registerOption('HLTname',     'HLT',    'HLT process name (default HLT)', optionType=VarParsing.varType.string) # HLTname was HLT2 in now outdated reHLT samples
 registerOption('HLTname',     'MYHLT',    'HLT process name', optionType=VarParsing.varType.string) # Modified
 registerOption('GT',          'auto',   'Global Tag to be used', optionType=VarParsing.varType.string)
-registerOption('era',         '2018',   'Data-taking era: 2016, 2017, 2018, 2022, 2023, 2023preBPIX, 2023postBPIX, 2024, 2025, 2026, UL2017 or UL2018', optionType=VarParsing.varType.string)
+registerOption('era',         '2018',   'Data-taking era, including Phase2 for Run-4 MC', optionType=VarParsing.varType.string)
 registerOption('logLevel',    'INFO',   'Loglevel: could be DEBUG, INFO, WARNING, ERROR', optionType=VarParsing.varType.string)
+
+registerOption(
+    'pairMassMin',
+    50.0,
+    'Minimum tag-and-probe invariant mass',
+    optionType=VarParsing.varType.float,
+)
+registerOption(
+    'pairMassMax',
+    130.0,
+    'Maximum tag-and-probe invariant mass',
+    optionType=VarParsing.varType.float,
+)
+
 
 registerOption('L1Threshold',  0,       'Threshold for L1 matched objects', optionType=VarParsing.varType.int)
 
@@ -48,7 +62,7 @@ if varOptions.isAOD and varOptions.doTrigger:  log.warning('AOD is not supported
 if not varOptions.isAOD and varOptions.doRECO: log.warning('miniAOD is not supported for doRECO, please consider using AOD')
 
 from EgammaAnalysis.TnPTreeProducer.cmssw_version import isReleaseAbove
-if varOptions.era not in ['2016', '2017', '2018', '2022', '2023', '2023preBPIX', '2023postBPIX', '2024', '2025', '2026', 'UL2016preVFP', 'UL2016postVFP', 'UL2017', 'UL2018']: 
+if varOptions.era not in ['2016', '2017', '2018', '2022', '2023', '2023preBPIX', '2023postBPIX', '2024', '2025', '2026', 'Phase2', 'UL2016preVFP', 'UL2016postVFP', 'UL2017', 'UL2018']:
   log.error('%s is not a valid era' % varOptions.era)
 #if ('UL' in varOptions.era)!=(isReleaseAbove(10, 6)):
   #log.error('Inconsistent release for era %s. Use CMSSW_10_6_X for UL and CMSSW_10_2_X for rereco' % varOptions.era)
@@ -114,6 +128,7 @@ if varOptions.GT == "auto":
     if options['era'] == '2024': options['GLOBALTAG'] = '140X_mcRun3_2024_realistic_v14'
     if options['era'] == '2025': options['GLOBALTAG'] = '150X_mcRun3_2025_realistic_v14'
     if options['era'] == '2026': options['GLOBALTAG'] = '160X_mcRun3_2026_realistic_v14' # To Be checked
+    if options['era'] == 'Phase2': options['GLOBALTAG'] = '150X_mcRun4_realistic_v1'
   else:
     if options['era'] == '2016':   options['GLOBALTAG'] = '94X_dataRun2_v10'
     if options['era'] == '2017':   options['GLOBALTAG'] = '94X_dataRun2_v11'
@@ -193,6 +208,26 @@ elif '2018'  in options['era']:
                                    "passHltDoubleEle33CaloIdLMWUnsLeg" :                cms.vstring("hltDiEle33CaloIdLMWPMS2UnseededFilter"),
                                   }
 
+elif options['era'] == 'Phase2':
+  # The tag path is unchanged between the Reference and Target HLT menus.
+  # Photon187 is measured at its final HLT filters; only its upstream L1 seed
+  # differs between the two menus.
+  options['TnPPATHS'] = cms.vstring("HLT_Ele32_WPTight_L1Seeded")
+  options['TnPHLTTagFilters'] = cms.vstring(
+      "hltEle32WPTightGsfTrackIsoL1SeededFilter"
+  )
+  options['TnPHLTProbeFilters'] = cms.vstring()
+  options['HLTFILTERSTOMEASURE'] = {
+      "passHLTPhoton187L1Seeded": cms.vstring(
+          "hltPhoton187HEL1SeededFilter",
+          "hltPhoton187HgcalHEL1SeededFilter",
+      ),
+      "passHLTPhoton187Unseeded": cms.vstring(
+          "hltPhoton187HEUnseededFilter",
+          "hltPhoton187HgcalHEUnseededFilter",
+      ),
+  }
+
 else:#Run-3
   options['TnPPATHS']           = cms.vstring("HLT_Ele30_WPTight_Gsf_v*")
   options['TnPHLTTagFilters']   = cms.vstring("hltEle30WPTightGsfTrackIsoFilter")
@@ -214,12 +249,14 @@ options['L1Threshold']          = varOptions.L1Threshold
 ###################################################################
 ## Define input files for test local run
 ###################################################################
-importTestFiles = 'from EgammaAnalysis.TnPTreeProducer.etc.tnpInputTestFiles_cff import files%s_%s as inputs' % ('AOD' if options['useAOD'] else 'MiniAOD', options['era'])
-exec(importTestFiles)
-
-options['INPUT_FILE_NAME'] = inputs['mc' if options['isMC'] else 'data']
-print(options["INPUT_FILE_NAME"], varOptions.inputFiles)
-options['INPUT_FILE_NAME'] = cms.untracked.vstring(varOptions.inputFiles[0])
+if varOptions.inputFiles:
+  options['INPUT_FILE_NAME'] = cms.untracked.vstring(varOptions.inputFiles)
+elif options['era'] == 'Phase2':
+  raise RuntimeError('Phase2 requires inputFiles=<MiniAOD file>')
+else:
+  importTestFiles = 'from EgammaAnalysis.TnPTreeProducer.etc.tnpInputTestFiles_cff import files%s_%s as inputs' % ('AOD' if options['useAOD'] else 'MiniAOD', options['era'])
+  exec(importTestFiles)
+  options['INPUT_FILE_NAME'] = inputs['mc' if options['isMC'] else 'data']
 ###################################################################
 ## Standard imports, GT and pile-up
 ###################################################################
@@ -236,8 +273,12 @@ process.load('FWCore.MessageService.MessageLogger_cfi')
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, options['GLOBALTAG'] , '')
 
-import EgammaAnalysis.TnPTreeProducer.pileupConfiguration_cff as pileUpSetup
-pileUpSetup.setPileUpConfiguration(process, options)
+if options['era'] != 'Phase2':
+  import EgammaAnalysis.TnPTreeProducer.pileupConfiguration_cff as pileUpSetup
+  pileUpSetup.setPileUpConfiguration(process, options)
+else:
+  process.mc_sequence = cms.Sequence()
+
 
 import FWCore.PythonUtilities.LumiList as LumiList
 def getLumiMask(era):
@@ -286,7 +327,7 @@ for pairingName in (
 # If miniAOD, adding some leptonMva versions, as well
 # as some advanced input variables like miniIso
 ###################################################################
-if not options['useAOD']:
+if not options['useAOD'] and options['era'] != 'Phase2':
   from EgammaAnalysis.TnPTreeProducer.leptonMva_cff import leptonMvaSequence
   process.init_sequence += leptonMvaSequence(process, options, tnpVars)
 
@@ -299,7 +340,8 @@ process.MessageLogger.cerr.threshold = ''
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 process.source = cms.Source("PoolSource", fileNames = options['INPUT_FILE_NAME'])
-process.source.lumisToProcess = LumiList.LumiList(url=getLumiMask(options['era'])).getVLuminosityBlockRange()
+if not options['isMC']:
+  process.source.lumisToProcess = LumiList.LumiList(url=getLumiMask(options['era'])).getVLuminosityBlockRange()
 
 process.maxEvents = cms.untracked.PSet( input = options['MAXEVENTS'])
 
@@ -399,6 +441,13 @@ tnpSetup.customize( process.tnpEleIDs  , options )
 tnpSetup.customize( process.tnpPhoIDs  , options )
 tnpSetup.customize( process.tnpEleReco , options )
 
+# The standard pileup helper has no Phase-2 profile. Keep generator weights,
+# but do not request the absent pileup-weight product.
+if options['era'] == 'Phase2':
+  for tree in (process.tnpEleTrig, process.tnpEleIDs, process.tnpPhoIDs, process.tnpEleReco):
+    if hasattr(tree, 'PUWeightSrc'):
+      del tree.PUWeightSrc
+
 
 process.tree_sequence = cms.Sequence()
 if (options['DoTrigger']): process.tree_sequence *= process.tnpEleTrig
@@ -431,3 +480,4 @@ process.TFileService = cms.Service(
     "TFileService", fileName = cms.string(options['OUTPUT_FILE_NAME']),
     closeFileFast = cms.untracked.bool(True)
     )
+
