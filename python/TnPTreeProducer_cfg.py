@@ -33,6 +33,19 @@ registerOption('GT',          'auto',   'Global Tag to be used', optionType=VarP
 registerOption('era',         '2018',   'Data-taking era: 2016, 2017, 2018, 2022, 2023, 2023preBPIX, 2023postBPIX, 2024, 2025, 2026, UL2017 or UL2018', optionType=VarParsing.varType.string)
 registerOption('logLevel',    'INFO',   'Loglevel: could be DEBUG, INFO, WARNING, ERROR', optionType=VarParsing.varType.string)
 
+registerOption(
+    'pairMassMin',
+    50.0,
+    'Minimum tag-and-probe invariant mass',
+    optionType=VarParsing.varType.float,
+)
+registerOption(
+    'pairMassMax',
+    130.0,
+    'Maximum tag-and-probe invariant mass',
+    optionType=VarParsing.varType.float,
+)
+
 registerOption('L1Threshold',  0,       'Threshold for L1 matched objects', optionType=VarParsing.varType.int)
 
 varOptions.parseArguments()
