@@ -126,7 +126,7 @@ if varOptions.GT == "auto":
     if options['era'] == '2023postBPIX': options['GLOBALTAG'] = '130X_mcRun3_2023_realistic_postBPix_v2'
     if options['era'] == '2024': options['GLOBALTAG'] = '140X_mcRun3_2024_realistic_v14'
     if options['era'] == '2025': options['GLOBALTAG'] = '150X_mcRun3_2025_realistic_v14'
-    if options['era'] == '2026': options['GLOBALTAG'] = '160X_mcRun3_2026_realistic_v14' # To Be checked
+    if options['era'] == '2026': options['GLOBALTAG'] = 'auto:phase1_2026_realistic'
   else:
     if options['era'] == '2016':   options['GLOBALTAG'] = '94X_dataRun2_v10'
     if options['era'] == '2017':   options['GLOBALTAG'] = '94X_dataRun2_v11'
