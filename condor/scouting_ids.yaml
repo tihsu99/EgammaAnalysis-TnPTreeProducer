@@ -54,7 +54,7 @@ samples:
     cmsrun:
       isMC: false
   Data_HLTSCOUT_2024F:
-    enabled: false
+    enabled: true
     dataset: /ScoutingPFRun3/Run2024F-v1/HLTSCOUT
     lumi_mask: ${TNP_LUMI_MASK}
     cmsrun:
