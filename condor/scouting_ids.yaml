@@ -11,7 +11,7 @@ input:
   das_instance: prod/global
 
 production:
-  files_per_job: 10
+  files_per_job: 50
   max_events: -1
   # Accepts /eos/user/..., /eos/cms/..., or a full root://host//absolute/path URL.
   eos_outputdir: /eos/user/t/tihsu/dataset/scouting_id/tnp_ntuple
