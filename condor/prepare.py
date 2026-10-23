@@ -10,6 +10,8 @@ import shlex
 import shutil
 import subprocess
 import sys
+import threading
+import time
 from urllib.parse import urlsplit
 
 import yaml
@@ -17,6 +19,72 @@ import yaml
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "python"))
 from scoutingCorrectionlib_cff import load_working_points
+
+
+class Progress:
+    """Keep elapsed time visible even while a blocking DAS or filesystem call waits."""
+
+    def __init__(self, label, total, unit, stream=None, interval=None):
+        self.label, self.total, self.unit = label, total, unit
+        self.stream = sys.stderr if stream is None else stream
+        self.terminal = self.stream.isatty()
+        self.interval = (0.25 if self.terminal else 5.) if interval is None else interval
+        self.completed, self.detail, self.width = 0, "", 0
+        self.started, self.last_render = time.monotonic(), 0.
+        self.lock, self.stop = threading.Lock(), threading.Event()
+
+    def __enter__(self):
+        self.render(force=True)
+        self.thread = threading.Thread(target=self.refresh, daemon=True)
+        self.thread.start()
+        return self
+
+    def refresh(self):
+        while not self.stop.wait(self.interval):
+            self.render()
+
+    def describe(self, detail):
+        with self.lock:
+            self.detail = detail
+        self.render(force=True)
+
+    def advance(self, detail=None):
+        with self.lock:
+            self.completed += 1
+            if detail is not None:
+                self.detail = detail
+        self.render()
+
+    def render(self, force=False, failed=False):
+        with self.lock:
+            now = time.monotonic()
+            if not force and now - self.last_render < self.interval:
+                return
+            fraction = self.completed / self.total if self.total else 0.
+            filled = int(20 * fraction)
+            elapsed = int(now - self.started)
+            label = self.label + (" FAILED" if failed else "")
+            line = (f"{label} [{'#' * filled}{'-' * (20 - filled)}] "
+                    f"{self.completed}/{self.total} {self.unit} ({fraction:.0%}) "
+                    f"{elapsed // 60:02d}:{elapsed % 60:02d}")
+            if self.detail:
+                line += " | " + self.detail
+            if self.terminal:
+                line = line[:max(20, shutil.get_terminal_size().columns - 1)]
+                self.stream.write("\r" + line.ljust(self.width))
+                self.width = len(line)
+            else:
+                self.stream.write(line + "\n")
+            self.stream.flush()
+            self.last_render = now
+
+    def __exit__(self, exception_type, exception, traceback):
+        self.stop.set()
+        self.thread.join()
+        self.render(force=True, failed=exception_type is not None)
+        if self.terminal:
+            self.stream.write("\n")
+            self.stream.flush()
 
 
 def expand(value):
@@ -157,6 +225,7 @@ def resolve_options(arguments, sample, base, assets):
 
 
 def prepare(config_path, farm_dir, selected=None):
+    print("Checking configuration...", file=sys.stderr, flush=True)
     config_path = Path(config_path).resolve()
     raw = yaml.safe_load(config_path.read_text())
     samples = {name: sample for name, sample in raw["samples"].items()
@@ -191,46 +260,61 @@ def prepare(config_path, farm_dir, selected=None):
     destination = eos_output_url(production["eos_outputdir"])
     assets = {"TnPTreeProducer_cfg.py": pset, "worker.py": HERE / "worker.py"}
     jobs = []
-    for name, sample in config["samples"].items():
-        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", name):
-            raise ValueError("Invalid sample name: " + name)
-        arguments = dict(config["cmsrun"], **sample.get("cmsrun", {}))
-        required, mask = resolve_options(arguments, sample, base, assets)
-        files = input_files(dict(config["input"], **sample), base, proxy)
-        count = positive(sample.get("files_per_job", production["files_per_job"]), "files_per_job")
-        events = sample.get("max_events", production["max_events"])
-        if type(events) is not int or (events != -1 and events < 1):
-            raise ValueError("max_events must be -1 or a positive integer")
-        for start in range(0, len(files), count):
-            job_id = f"{name}_{start // count:05d}"
-            jobs.append(dict(job_id=job_id, sample=name, dataset=sample.get("dataset"),
-                             input_files=files[start:start + count], max_events=events,
-                             cmsrun_args=[f"{key}={value}" for key, value in arguments.items()],
-                             root_filename="TnPTree_{}.root".format("mc" if arguments["isMC"] else "data"),
-                             required_trees=required, lumi_mask=mask,
-                             output_url=f"{destination}/{name}/tnp_{job_id}.root", stageout_attempts=attempts))
+    with Progress("Datasets", len(config["samples"]), "samples") as progress:
+        for name, sample in config["samples"].items():
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", name):
+                raise ValueError("Invalid sample name: " + name)
+            progress.describe(name + ": checking ID inputs")
+            arguments = dict(config["cmsrun"], **sample.get("cmsrun", {}))
+            required, mask = resolve_options(arguments, sample, base, assets)
+            source = "DAS query" if sample.get("dataset") else "file list"
+            progress.describe(name + ": waiting for " + source)
+            files = input_files(dict(config["input"], **sample), base, proxy)
+            count = positive(sample.get("files_per_job", production["files_per_job"]), "files_per_job")
+            events = sample.get("max_events", production["max_events"])
+            if type(events) is not int or (events != -1 and events < 1):
+                raise ValueError("max_events must be -1 or a positive integer")
+            total_jobs = (len(files) + count - 1) // count
+            progress.describe(f"{name}: {len(files)} files; splitting {total_jobs} jobs")
+            for start in range(0, len(files), count):
+                job_id = f"{name}_{start // count:05d}"
+                jobs.append(dict(job_id=job_id, sample=name, dataset=sample.get("dataset"),
+                                 input_files=files[start:start + count], max_events=events,
+                                 cmsrun_args=[f"{key}={value}" for key, value in arguments.items()],
+                                 root_filename="TnPTree_{}.root".format("mc" if arguments["isMC"] else "data"),
+                                 required_trees=required, lumi_mask=mask,
+                                 output_url=f"{destination}/{name}/tnp_{job_id}.root", stageout_attempts=attempts))
+
+            progress.advance(f"{name}: {len(files)} files, {total_jobs} jobs")
 
     farm = Path(farm_dir).resolve()
     submit_path(farm)
     farm.mkdir(parents=True, exist_ok=False)
     for directory in ("logs", "jobs", "payload"):
         (farm / directory).mkdir()
-    for target, source in assets.items():
-        shutil.copyfile(source, farm / "payload" / target)
-    checksums = {name: hashlib.sha256((farm / "payload" / name).read_bytes()).hexdigest() for name in assets}
+    checksums = {}
+    with Progress("Snapshot assets", len(assets), "files") as progress:
+        for target, source in assets.items():
+            progress.describe(target)
+            shutil.copyfile(source, farm / "payload" / target)
+            checksums[target] = hashlib.sha256((farm / "payload" / target).read_bytes()).hexdigest()
+            progress.advance()
     settings = dict(farm_dir=str(farm), cmssw_area=str(area), cmsset_default=str(cmsset),
                     cmssw_release=runtime["release"], scram_arch=runtime["scram_arch"], proxy_file=str(proxy))
-    for job in jobs:
-        job_id = job["job_id"]
-        job["sha256"] = checksums
-        (farm / "payload" / (job_id + ".json")).write_text(json.dumps(job, indent=2) + "\n")
-        shell = "#!/bin/bash\n" + "".join(f"{key}={shlex.quote(value)}\n" for key, value in dict(settings, job_id=job_id).items())
-        shell += "extra_assets=(" + " ".join(shlex.quote(name) for name in assets if name not in
-                                             ("worker.py", "TnPTreeProducer_cfg.py")) + ")\n"
-        shell += (HERE / "run.sh").read_text().split("\n", 1)[1]
-        script = farm / "jobs" / (job_id + ".sh")
-        script.write_text(shell)
-        script.chmod(0o755)
+    launcher = (HERE / "run.sh").read_text().split("\n", 1)[1]
+    with Progress("Write jobs", len(jobs), "jobs") as progress:
+        for job in jobs:
+            job_id = job["job_id"]
+            job["sha256"] = checksums
+            (farm / "payload" / (job_id + ".json")).write_text(json.dumps(job, indent=2) + "\n")
+            shell = "#!/bin/bash\n" + "".join(f"{key}={shlex.quote(value)}\n" for key, value in dict(settings, job_id=job_id).items())
+            shell += "extra_assets=(" + " ".join(shlex.quote(name) for name in assets if name not in
+                                                 ("worker.py", "TnPTreeProducer_cfg.py")) + ")\n"
+            shell += launcher
+            script = farm / "jobs" / (job_id + ".sh")
+            script.write_text(shell)
+            script.chmod(0o755)
+            progress.advance(job_id)
     lines = ["universe = vanilla", f"initialdir = {farm}", f"executable = {farm}/jobs/$(job).sh",
              "should_transfer_files = YES", "when_to_transfer_output = ON_EXIT", 'transfer_output_files = ""',
              "transfer_input_files = " + ",".join(str(farm / "payload" / name) for name in [*assets, "$(job).json"]),
@@ -241,9 +325,13 @@ def prepare(config_path, farm_dir, selected=None):
              "output = logs/$(job).$(ClusterId).$(ProcId).out", "error = logs/$(job).$(ClusterId).$(ProcId).err",
              "log = logs/cluster.$(ClusterId).log", "queue job from ("]
     lines += [job["job_id"] for job in jobs] + [")"]
-    (farm / "submit.sub").write_text("\n".join(lines) + "\n")
-    (farm / "manifest.json").write_text(json.dumps(jobs, indent=2) + "\n")
-    (farm / "resolved.yaml").write_text(yaml.safe_dump(config, sort_keys=False))
+    with Progress("Finalize", 3, "files") as progress:
+        (farm / "submit.sub").write_text("\n".join(lines) + "\n")
+        progress.advance("submit.sub")
+        (farm / "manifest.json").write_text(json.dumps(jobs, indent=2) + "\n")
+        progress.advance("manifest.json")
+        (farm / "resolved.yaml").write_text(yaml.safe_dump(config, sort_keys=False))
+        progress.advance("resolved.yaml")
     print(f"Prepared {len(jobs)} jobs from {len(config['samples'])} samples; no submission.")
     print("EOS outputdir:", destination)
     print(f"Local test: bash {farm}/jobs/{jobs[0]['job_id']}.sh 1000")
