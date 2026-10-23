@@ -85,13 +85,15 @@ def configure_scouting_ids(process, options, sequence, particle):
             continue
         for name, entry in entries.items():
             suffix = re.sub(r"[^A-Za-z0-9_]", "_", name)
-            module_name = "probe{}Correctionlib{}_{}".format("Ele" if particle == "electron" else "Pho",
-                                                             kind.title(), suffix)
+            module_name = "probe{}Correctionlib{}{}".format("Ele" if particle == "electron" else "Pho",
+                                                            kind.title(), suffix.replace("_", ""))
             if hasattr(process, module_name):
                 raise ValueError("Correctionlib WP module name collision: " + module_name)
             module = _selector(options, particle, filename, entry)
             setattr(process, module_name, module)
             sequence += module
+            # CMSSW module labels cannot contain underscores; keep the public tree flags unchanged.
+            options.setdefault("SCOUTING_ID_FLAGS", {})[module_name] = "passingCorrectionlib{}_{}".format(kind.title(), suffix)
 
     tag = options.get("SCOUTING_TAG_WP", "")
     if particle == "electron" and tag:

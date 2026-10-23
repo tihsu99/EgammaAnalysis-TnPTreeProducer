@@ -13,6 +13,7 @@ import sys
 import threading
 import time
 from urllib.parse import urlsplit
+from urllib.request import urlopen
 
 import yaml
 
@@ -215,11 +216,18 @@ def resolve_options(arguments, sample, base, assets):
     if not arguments["isMC"]:
         if not sample.get("lumi_mask"):
             raise ValueError("Data production requires lumi_mask in its sample configuration")
-        source = local_path(sample["lumi_mask"], base)
-        lumis = json.loads(source.read_text())
+        location = sample["lumi_mask"]
+        if location.startswith(("https://", "http://")):
+            with urlopen(location, timeout=60) as response:
+                content = response.read()
+            source = content
+        else:
+            source = local_path(location, base)
+            content = source.read_bytes()
+        lumis = json.loads(content)
         if not isinstance(lumis, dict) or not lumis:
             raise ValueError("Data lumi_mask must be a nonempty certification JSON")
-        mask = "lumimask_" + hashlib.sha256(source.read_bytes()).hexdigest()[:16] + ".json"
+        mask = "lumimask_" + hashlib.sha256(content).hexdigest()[:16] + ".json"
         assets[mask] = source
     return required, mask
 
@@ -264,7 +272,7 @@ def prepare(config_path, farm_dir, selected=None):
         for name, sample in config["samples"].items():
             if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", name):
                 raise ValueError("Invalid sample name: " + name)
-            progress.describe(name + ": checking ID inputs")
+            progress.describe(name + ": checking IDs and lumi mask")
             arguments = dict(config["cmsrun"], **sample.get("cmsrun", {}))
             required, mask = resolve_options(arguments, sample, base, assets)
             source = "DAS query" if sample.get("dataset") else "file list"
@@ -296,7 +304,10 @@ def prepare(config_path, farm_dir, selected=None):
     with Progress("Snapshot assets", len(assets), "files") as progress:
         for target, source in assets.items():
             progress.describe(target)
-            shutil.copyfile(source, farm / "payload" / target)
+            if isinstance(source, bytes):
+                (farm / "payload" / target).write_bytes(source)
+            else:
+                shutil.copyfile(source, farm / "payload" / target)
             checksums[target] = hashlib.sha256((farm / "payload" / target).read_bytes()).hexdigest()
             progress.advance()
     settings = dict(farm_dir=str(farm), cmssw_area=str(area), cmsset_default=str(cmsset),

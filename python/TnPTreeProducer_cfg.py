@@ -434,8 +434,9 @@ else:
 # Simply look which probeEleX modules were made in egmElectronIDModules_cff.py and convert them into a passingX boolean in the tree 
 for probeEleModule in str(process.ele_sequence).split('+'):
   if not 'probeEle' in probeEleModule or probeEleModule in ['probeEle', 'probeEleL1matched']: continue
-  setattr(process.tnpEleTrig.flags, probeEleModule.replace('probeEle', 'passing'), cms.InputTag(probeEleModule))
-  setattr(process.tnpEleIDs.flags,  probeEleModule.replace('probeEle', 'passing'), cms.InputTag(probeEleModule))
+  flag = options.get('SCOUTING_ID_FLAGS', {}).get(probeEleModule, probeEleModule.replace('probeEle', 'passing'))
+  setattr(process.tnpEleTrig.flags, flag, cms.InputTag(probeEleModule))
+  setattr(process.tnpEleIDs.flags,  flag, cms.InputTag(probeEleModule))
 
 
 
@@ -462,7 +463,8 @@ else:
 # Simply look which probePhoX modules were made in egmPhotonIDModules_cff.py and convert them into a passingX boolean in the tree 
 for probePhoModule in str(process.pho_sequence).split('+'):
   if not 'probePho' in probePhoModule or probePhoModule=='probePho': continue
-  setattr(process.tnpPhoIDs.flags, probePhoModule.replace('probePho', 'passing'), cms.InputTag(probePhoModule))
+  flag = options.get('SCOUTING_ID_FLAGS', {}).get(probePhoModule, probePhoModule.replace('probePho', 'passing'))
+  setattr(process.tnpPhoIDs.flags, flag, cms.InputTag(probePhoModule))
 
 
 # Add SUSY variables to the "variables", add SUSY IDs to the "flags" [kind of deprecated, better ways to add these]
