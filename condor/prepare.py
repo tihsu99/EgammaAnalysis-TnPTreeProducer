@@ -58,6 +58,17 @@ def root_url(value):
     return value.rstrip("/")
 
 
+def eos_output_url(value):
+    # Resolve mounted EOS namespaces without requiring an EOS mount on workers.
+    for prefix, endpoint in (("/eos/user/", "root://eosuser.cern.ch"),
+                             ("/eos/cms/", "root://eoscms.cern.ch")):
+        if value.startswith(prefix):
+            return root_url(endpoint + "/" + value)
+    if value.startswith("/eos/"):
+        raise ValueError("Provide a root://host//absolute/path URL for this EOS instance: " + value)
+    return root_url(value)
+
+
 def input_files(config, base, proxy):
     sources = [key for key in ("files", "file_list", "dataset") if config.get(key)]
     if len(sources) != 1:
@@ -177,7 +188,7 @@ def prepare(config_path, farm_dir, selected=None):
     if not proxy.is_file():
         raise ValueError("Create the X509 proxy first: " + str(proxy))
     attempts = positive(production["stageout_attempts"], "production.stageout_attempts")
-    destination = root_url(production["eos_outputdir"])
+    destination = eos_output_url(production["eos_outputdir"])
     assets = {"TnPTreeProducer_cfg.py": pset, "worker.py": HERE / "worker.py"}
     jobs = []
     for name, sample in config["samples"].items():

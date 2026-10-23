@@ -17,10 +17,15 @@ Set these paths directly in the YAML, or export its environment variables:
 ```bash
 export ELECTRON_ID_JSON=/absolute/path/to/electron/scouting_id.json.gz
 export PHOTON_ID_JSON=/absolute/path/to/photon/scouting_id.json.gz
-export TNP_EOS_OUTPUTDIR=root://eosuser.cern.ch//eos/user/t/tihsu/tnp/correctionlib_v1
+export TNP_EOS_OUTPUTDIR=/eos/user/t/tihsu/tnp/correctionlib_v1
 voms-proxy-init --voms cms --valid 192:00
 export X509_USER_PROXY="$(voms-proxy-info --path)"
 ```
+
+`eos_outputdir` accepts ordinary `/eos/user/...` and `/eos/cms/...` paths and
+converts them to the corresponding XRootD endpoint for worker stageout. Full
+`root://host//absolute/path` URLs also work, including other EOS instances.
+Workers still process files in scratch; they do not require a mounted EOS directory.
 
 `CMSSW_BASE`, `CMSSW_VERSION`, and `SCRAM_ARCH` come from `cmsenv`. Use a new EOS
 campaign directory; completed output files are never overwritten. Data samples
