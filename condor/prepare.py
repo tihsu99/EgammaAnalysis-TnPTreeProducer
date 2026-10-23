@@ -265,6 +265,12 @@ def prepare(config_path, farm_dir, selected=None):
     if not proxy.is_file():
         raise ValueError("Create the X509 proxy first: " + str(proxy))
     attempts = positive(production["stageout_attempts"], "production.stageout_attempts")
+    individual = production.get("process_files_individually", False)
+    skip_bad = production.get("skip_bad_files", False)
+    if type(individual) is not bool or type(skip_bad) is not bool:
+        raise ValueError("process_files_individually and skip_bad_files must be YAML booleans")
+    if skip_bad and not individual:
+        raise ValueError("skip_bad_files requires process_files_individually")
     destination = eos_output_url(production["eos_outputdir"])
     assets = {"TnPTreeProducer_cfg.py": pset, "worker.py": HERE / "worker.py"}
     jobs = []
@@ -288,6 +294,7 @@ def prepare(config_path, farm_dir, selected=None):
                 job_id = f"{name}_{start // count:05d}"
                 jobs.append(dict(job_id=job_id, sample=name, dataset=sample.get("dataset"),
                                  input_files=files[start:start + count], max_events=events,
+                                 process_files_individually=individual, skip_bad_files=skip_bad,
                                  cmsrun_args=[f"{key}={value}" for key, value in arguments.items()],
                                  root_filename="TnPTree_{}.root".format("mc" if arguments["isMC"] else "data"),
                                  required_trees=required, lumi_mask=mask,
