@@ -1,0 +1,66 @@
+# Generate jobs only, test one shell locally, then submit the same farm.
+cmssw:
+  base: ${CMSSW_BASE}
+  release: ${CMSSW_VERSION}
+  scram_arch: ${SCRAM_ARCH}
+  cmsset_default: /cvmfs/cms.cern.ch/cmsset_default.sh
+  pset: ../python/TnPTreeProducer_cfg.py
+
+input:
+  redirector: root://cms-xrd-global.cern.ch/
+  das_instance: prod/global
+
+production:
+  files_per_job: 1
+  max_events: -1
+  # Full campaign directory, e.g. root://eosuser.cern.ch//eos/user/t/tihsu/tnp/id_v1
+  eos_outputdir: ${TNP_EOS_OUTPUTDIR}
+  stageout_attempts: 3
+
+cmsrun:
+  objectBackend: scouting
+  inputFormat: miniaod
+  triggerBackend: patTrigger
+  isMC: true
+  era: '2024'
+  doEleID: true
+  doPhoID: true
+  doTrigger: false
+  doRECO: false
+  scoutingElectronID: /eos/user/t/tihsu/dataset/scouting_id/Release_Working_Points/Electron/CorrectionLib/scouting_id.json.gz
+  scoutingPhotonID: /eos/user/t/tihsu/dataset/scouting_id/Release_Working_Points/Photon/CorrectionLib/scouting_id.json.gz
+  scoutingTagWP: electron:Iso/WP70
+
+condor:
+  proxy: ${X509_USER_PROXY}
+  os: el9
+  job_flavour: workday
+  cpus: 1
+  memory_mb: 4000
+  disk_mb: 12000
+
+samples:
+  # These datasets are the existing scouting TnP CRAB inputs.
+  DY_NLO_2024:
+    enabled: true
+    dataset: /DYto2E-2Jets_Bin-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24MiniAODv6-150X_mcRun3_2024_realistic_v2-v4/MINIAODSIM
+  DY_LO_2024:
+    enabled: true
+    dataset: /DYto2E-4Jets_Bin-MLL-50_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24MiniAOD-140X_mcRun3_2024_realistic_v26-v3/MINIAODSIM
+  Data_MINIAOD_2024F:
+    enabled: false
+    dataset: /ScoutingPFMonitor/Run2024F-PromptReco-v1/MINIAOD
+    lumi_mask: ${TNP_LUMI_MASK}
+    cmsrun:
+      isMC: false
+  Data_HLTSCOUT_2024F:
+    enabled: false
+    dataset: /ScoutingPFRun3/Run2024F-v1/HLTSCOUT
+    lumi_mask: ${TNP_LUMI_MASK}
+    cmsrun:
+      isMC: false
+      inputFormat: hltscout
+      triggerBackend: triggerEvent
+      requireTriggerObjectMatch: false
+  # A sample can instead use files: ["${TNP_INPUT}"] or file_list: files.txt.
+  # Choose exactly one input source per sample; files_per_job may be overridden.

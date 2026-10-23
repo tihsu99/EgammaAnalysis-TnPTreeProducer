@@ -116,6 +116,10 @@ Description of some of variables in the output tree is given [here](VariablesInf
 
 ## Exported scouting IDs from correctionlib
 
+For YAML-controlled multi-dataset Condor production, including local testing of
+the same job shells and worker-scratch to EOS output, see
+[the Condor workflow](condor/README.md) and [sample configuration](condor/scouting_ids.yaml).
+
 With `objectBackend=scouting`, supply the full `scouting_id.json` or
 `scouting_id.json.gz` produced by `Scouting_EGM_ID/export_id.py`. The ntuplizer
 discovers all exported working points and creates passing probe collections and
