@@ -41,6 +41,9 @@ registerOption('scoutingElectronCollection', 'hltScoutingEgammaPacker', 'Scoutin
 registerOption('scoutingPhotonCollection',   'hltScoutingEgammaPacker', 'Scouting photon collection', optionType=VarParsing.varType.string)
 registerOption('scoutingVertexCollection',   'hltScoutingPrimaryVertexPacker:primaryVtx', 'Scouting vertex collection', optionType=VarParsing.varType.string)
 registerOption('scoutingRho',                'hltScoutingPFPacker:rho', 'Scouting rho collection', optionType=VarParsing.varType.string)
+registerOption('scoutingElectronID', '', 'Full electron scouting_id.json(.gz); add all exported WP flags', optionType=VarParsing.varType.string)
+registerOption('scoutingPhotonID', '', 'Full photon scouting_id.json(.gz); add flags on photon and electron probes', optionType=VarParsing.varType.string)
+registerOption('scoutingTagWP', '', 'Optional tag ID: electron:Iso/WP70 or photon:PhotonIso/WP70', optionType=VarParsing.varType.string)
 
 registerOption('L1Threshold',  0,       'Threshold for L1 matched objects', optionType=VarParsing.varType.int)
 
@@ -106,6 +109,11 @@ options['SCOUTING_ELECTRON_COLL'] = varOptions.scoutingElectronCollection
 options['SCOUTING_PHOTON_COLL']   = varOptions.scoutingPhotonCollection
 options['SCOUTING_VERTEX_COLL']   = varOptions.scoutingVertexCollection
 options['SCOUTING_RHO']           = varOptions.scoutingRho
+options['SCOUTING_ELECTRON_ID']   = varOptions.scoutingElectronID
+options['SCOUTING_PHOTON_ID']     = varOptions.scoutingPhotonID
+options['SCOUTING_TAG_WP']        = varOptions.scoutingTagWP
+if not options['USE_SCOUTING_OBJECTS'] and any((varOptions.scoutingElectronID, varOptions.scoutingPhotonID, varOptions.scoutingTagWP)):
+  raise ValueError('Scouting correctionlib IDs require objectBackend=scouting')
 
 if options['objectBackend'] == 'gsf':
   options['ELECTRON_COLL']      = "gedGsfElectrons"

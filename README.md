@@ -113,3 +113,99 @@ flexibility to explore different workingpoints: you can simply put a cut on thes
 ## Description of variables
 
 Description of some of variables in the output tree is given [here](VariablesInfo.md).
+
+## Exported scouting IDs from correctionlib
+
+With `objectBackend=scouting`, supply the full `scouting_id.json` or
+`scouting_id.json.gz` produced by `Scouting_EGM_ID/export_id.py`. The ntuplizer
+discovers all exported working points and creates passing probe collections and
+tree flags. Do not supply the EA/scale-only `corrections_all.json` file.
+
+| Option | Purpose |
+| --- | --- |
+| `scoutingElectronID` | Electron ID bundle; evaluate every WP on electron probes. |
+| `scoutingPhotonID` | Photon ID bundle; evaluate every WP on photon probes and, as in the existing scouting setup, on electron probes. |
+| `scoutingTagWP` | Optional `electron:<WP key>` or `photon:<WP key>` to select electron tags. |
+
+For example, `Iso/WP70` in the electron bundle produces
+`passingCorrectionlibElectron_Iso_WP70` in `tnpEleIDs/fitter_tree` (also in the
+electron trigger tree when enabled). `PhotonIso/WP90` in the photon bundle
+produces `passingCorrectionlibPhoton_PhotonIso_WP90` in both `tnpEleIDs/fitter_tree`
+and `tnpPhoIDs/fitter_tree` when those trees are enabled. Non-alphanumeric
+characters in WP keys become underscores; ambiguous resulting names are rejected.
+Private correctionlib components are never exported as flags.
+
+The probe denominator and the existing reference-ID flags are preserved. A WP
+flag marks pass/fail on those baseline probes; it does not preselect the entire
+probe sample. A configured tag WP replaces the legacy tag ID, applies
+`ELECTRON_TAG_CUTS`, and keeps the existing tag trigger selection. Tags remain
+electron candidates even when a photon WP is chosen. If `scoutingTagWP` is
+omitted, the legacy tag selection is retained. Omitting all three options keeps
+the existing configuration.
+
+Rebuild in a Run 3 CMSSW release providing the `correctionlib` SCRAM tool, then
+test on a scouting-enabled MiniAOD file (set `TNP_INPUT`, `ELECTRON_ID_JSON`, and
+`PHOTON_ID_JSON` to the input file and the two exported bundles):
+
+```bash
+cd "${CMSSW_BASE:?}/src"
+scram b -j 8
+cmsRun EgammaAnalysis/TnPTreeProducer/python/TnPTreeProducer_cfg.py \
+  objectBackend=scouting inputFormat=miniaod triggerBackend=patTrigger \
+  isMC=True era=2024 doEleID=True doPhoID=True doTrigger=False doRECO=False \
+  inputFiles="${TNP_INPUT:?}" maxEvents=1000 \
+  scoutingElectronID="${ELECTRON_ID_JSON:?}" \
+  scoutingPhotonID="${PHOTON_ID_JSON:?}" \
+  scoutingTagWP=electron:Iso/WP70
+```
+
+Use the input-format, era, MC/data, and trigger options appropriate to the actual
+sample. To select tags with a photon WP, replace the final argument with
+`scoutingTagWP=photon:PhotonIso/WP70`. You may supply either bundle separately.
+WP keys must match the JSON exactly; display labels such as Tight or AXOL1TL do
+not rename correctionlib keys.
+
+All evaluators receive **raw** scouting quantities. ECAL/HCAL/track isolation is
+passed in GeV without division or additional calibration. The JSON defines
+whether to use E or pT, applies EA/scale corrections and clamping, and includes
+the exported fiducial cuts and Barrel/Endcap boundaries. Photon bundles do not
+need `missingHits`. The rho input `ScoutingRho.fixedGridRhoFastjetAll` maps to the
+event product selected by `scoutingRho` (default `hltScoutingPFPacker:rho`); this
+must be the same physical rho used to derive the ID. Missing products, unknown
+input mappings or WPs, and non-binary outputs raise errors. Non-finite raw inputs
+fail the corresponding WP.
+
+Equality with the Python evaluator assumes identical numeric inputs. The
+training NanoAOD tables use reduced float precision, whereas this selector reads
+the original scouting objects; candidates very near a cut can therefore migrate
+when comparing these different data representations.
+
+The mapping is centralized in `python/scoutingCorrectionlib_cff.py`. A custom
+CMSSW config can override raw getters through
+`options['SCOUTING_ID_VARIABLES'][particle][input_name] = expression` and event
+double products through `options['SCOUTING_ID_EVENT_VARIABLES'][input_name] = input_tag`
+before calling `setupTreeMaker`. Selection thresholds always come from the JSON.
+
+For CRAB, place the two bundles in the submission directory with **different
+basenames**, for example `electron_id.json.gz` and `photon_id.json.gz`, then add
+these fields to the existing job configuration:
+
+```python
+cfg.JobType.inputFiles = ["electron_id.json.gz", "photon_id.json.gz"]
+cfg.JobType.pyCfgParams += [
+    "scoutingElectronID=electron_id.json.gz",
+    "scoutingPhotonID=photon_id.json.gz",
+    "scoutingTagWP=electron:Iso/WP70",
+]
+```
+
+Keep any other required `inputFiles` entries. Relative paths are intentionally
+preserved so the same parameters work inside the CRAB worker sandbox. Archive
+the exact bundles with the production configuration to retain ID provenance.
+
+Configuration checks run without CMSSW:
+`python3 test/test_scouting_correctionlib.py`. The standalone C++ driver in
+`test/scouting_correctionlib_evaluate.cc` is also used by
+`Scouting_EGM_ID/tests/test_tnp_correctionlib.py` to compare both exported ID
+families with their Python evaluator. These checks do not replace a CMSSW build
+and a small `cmsRun` test on the intended input tier.

@@ -25,6 +25,8 @@ def setIDs(process, options):
         addNewScoutingProbeModule(probeSequence, 'ScoutingPhotonRecommendv1', 'ScoutingPhotonRecommendv1')
         addNewScoutingProbeModule(probeSequence, 'ScoutingPhotonCustomizev1', 'ScoutingPhotonCustomizev1')
 
+        from EgammaAnalysis.TnPTreeProducer.scoutingCorrectionlib_cff import configure_scouting_ids
+        configure_scouting_ids(process, options, probeSequence, 'photon')
         return probeSequence
 
     switchOnVIDPhotonIdProducer(process, DataFormat.AOD if options['useAOD'] else DataFormat.MiniAOD)
