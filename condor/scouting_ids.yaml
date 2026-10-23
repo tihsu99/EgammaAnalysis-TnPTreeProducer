@@ -50,13 +50,13 @@ samples:
   Data_MINIAOD_2024F:
     enabled: false
     dataset: /ScoutingPFMonitor/Run2024F-PromptReco-v1/MINIAOD
-    lumi_mask: ${TNP_LUMI_MASK}
+    lumi_mask: "https://cms-service-dqmdc.web.cern.ch/CAF/certification/Collisions24/Cert_Collisions2024_378981_386951_Golden.json"
     cmsrun:
       isMC: false
   Data_HLTSCOUT_2024F:
     enabled: true
     dataset: /ScoutingPFRun3/Run2024F-v1/HLTSCOUT
-    lumi_mask: ${TNP_LUMI_MASK}
+    lumi_mask: "https://cms-service-dqmdc.web.cern.ch/CAF/certification/Collisions24/Cert_Collisions2024_378981_386951_Golden.json"
     cmsrun:
       isMC: false
       inputFormat: hltscout
