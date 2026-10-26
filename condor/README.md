@@ -107,6 +107,24 @@ The ROOT file is published last. Uploads retry according to
 and error are in the farm's `logs/` directory; large ROOT files are not returned
 to the submission directory. Empty production trees can be legitimate and are
 recorded in the receipt, while local tests require at least one probe pair.
+The default `logging.stream_cmsrun: false` keeps full cmsRun output out of the
+submit host's `.out`/`.err` files. These retain file progress, exit codes, probe
+counts, blacklist summaries, stageout status, and at most
+`logging.failure_tail_bytes` (default 16384) of each failed cmsRun's transcript.
+The limit applies to each failure excerpt, not to the entire job log. Exceptions
+still fail the job, and bad-input classification uses the full scratch log and
+FrameworkJobReport as before.
+
+Full per-file logs and XML reports are kept in scratch and uploaded as
+`<output>.reports.tar.gz` when an individual-file job succeeds; blacklist details
+are in `<output>.blacklist.json`. Jobs processing all inputs in one cmsRun upload
+`<output>.log.gz` alongside `<output>.xml`. Failed jobs do not upload diagnostics;
+their bounded failure excerpts remain in Condor output, and full logs survive
+only while their worker scratch survives. Local tests retain all logs in their
+printed working directory. Set `logging.stream_cmsrun: true` for verbose debugging.
+Prepare a new farm after changing these settings; existing payloads and submitted
+jobs retain their original logging behavior.
+
 Submission only queues work; inspect worker logs and final EOS artifacts before
 considering a campaign complete. The local test does not test worker credentials
 or EOS upload; check the first completed batch job before relying on a large run.

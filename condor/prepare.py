@@ -271,6 +271,16 @@ def prepare(config_path, farm_dir, selected=None):
         raise ValueError("process_files_individually and skip_bad_files must be YAML booleans")
     if skip_bad and not individual:
         raise ValueError("skip_bad_files requires process_files_individually")
+    logging = config.get("logging", {})
+    if not isinstance(logging, dict):
+        raise ValueError("logging must be a YAML mapping")
+    logging = {"stream_cmsrun": False, "failure_tail_bytes": 16384, **logging}
+    if set(logging) - {"stream_cmsrun", "failure_tail_bytes"}:
+        raise ValueError("Unknown logging setting")
+    if type(logging["stream_cmsrun"]) is not bool:
+        raise ValueError("logging.stream_cmsrun must be a YAML boolean")
+    positive(logging["failure_tail_bytes"], "logging.failure_tail_bytes")
+    config["logging"] = logging
     destination = eos_output_url(production["eos_outputdir"])
     assets = {"TnPTreeProducer_cfg.py": pset, "worker.py": HERE / "worker.py"}
     jobs = []
@@ -295,6 +305,7 @@ def prepare(config_path, farm_dir, selected=None):
                 jobs.append(dict(job_id=job_id, sample=name, dataset=sample.get("dataset"),
                                  input_files=files[start:start + count], max_events=events,
                                  process_files_individually=individual, skip_bad_files=skip_bad,
+                                 logging=logging,
                                  cmsrun_args=[f"{key}={value}" for key, value in arguments.items()],
                                  root_filename="TnPTree_{}.root".format("mc" if arguments["isMC"] else "data"),
                                  required_trees=required, lumi_mask=mask,

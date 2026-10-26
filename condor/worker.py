@@ -1,9 +1,11 @@
 """Run in scratch, validate TnP output, then publish the ROOT file to EOS."""
 import argparse
+import gzip
 import hashlib
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import time
 import tarfile
@@ -15,6 +17,33 @@ import uuid
 def run(*args):
     print("Running:", " ".join(map(str, args)), flush=True)
     subprocess.run(list(map(str, args)), check=True)
+
+
+def run_cmsrun(command, log_path, settings):
+    """Keep the full transcript in scratch; print a bounded tail on failure."""
+    stream = settings.get("stream_cmsrun", False)
+    print("Running:", " ".join(command), flush=True)
+    started = time.monotonic()
+    with log_path.open("wb") as log:
+        if stream:
+            with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as process:
+                while chunk := process.stdout.read(8192):
+                    log.write(chunk)
+                    print(chunk.decode("utf-8", errors="replace"), end="", flush=True)
+                code = process.wait()
+        else:
+            code = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT).returncode
+    size = log_path.stat().st_size
+    print(f"cmsRun exit={code}; elapsed={time.monotonic() - started:.0f}s; "
+          f"full log={log_path} ({size} bytes)", flush=True)
+    if code and not stream:
+        with log_path.open("rb") as log:
+            log.seek(max(0, size - settings.get("failure_tail_bytes", 16384)))
+            tail = log.read()
+        print(f"--- cmsRun failure: last {len(tail)} of {size} log bytes ---", flush=True)
+        print(tail.decode("utf-8", errors="replace"), flush=True)
+        print("--- end cmsRun failure tail ---", flush=True)
+    return code
 
 
 def inspect_root(filename, required):
@@ -113,14 +142,7 @@ def process_individually(job, events):
         log_path = reports / f"input_{index:05d}.log"
         command = ["cmsRun", "-j", str(report_path), "TnPTreeProducer_cfg.py",
                    *job["cmsrun_args"], "inputFiles=" + source, "maxEvents=" + str(remaining)]
-        print("Running:", " ".join(command), flush=True)
-        with log_path.open("w") as log:
-            with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                  text=True, errors="replace") as process:
-                for line in process.stdout:
-                    log.write(line)
-                    print(line, end="", flush=True)
-                code = process.wait()
+        code = run_cmsrun(command, log_path, job.get("logging", {}))
         record = dict(input_file=source, returncode=code, max_events=remaining,
                       framework_report=str(report_path), log=str(log_path))
         if code:
@@ -134,7 +156,8 @@ def process_individually(job, events):
             # Retain every skip immediately, including jobs where all inputs eventually fail.
             Path("blacklist.json").write_text(json.dumps(dict(job_id=job["job_id"],
                 dataset=job.get("dataset"), files=blacklist), indent=2) + "\n")
-            print("BLACKLIST:", json.dumps(record), flush=True)
+            print("BLACKLIST:", json.dumps({key: record[key] for key in
+                  ("input_file", "returncode", "category", "log")}), flush=True)
         else:
             report = ET.parse(report_path).getroot()
             if report.findall("FrameworkError"):
@@ -202,10 +225,16 @@ def execute(job, local_max_events=None):
         entries, details = process_individually(job, events)
         diagnostics = [("file_reports.tar.gz", ".reports.tar.gz"), ("blacklist.json", ".blacklist.json")]
     else:
-        run("cmsRun", "-j", "FrameworkJobReport.xml", "TnPTreeProducer_cfg.py",
-            *job["cmsrun_args"], "inputFiles=" + ",".join(job["input_files"]), "maxEvents=" + str(events))
+        command = ["cmsRun", "-j", "FrameworkJobReport.xml", "TnPTreeProducer_cfg.py",
+                   *job["cmsrun_args"], "inputFiles=" + ",".join(job["input_files"]), "maxEvents=" + str(events)]
+        log_path = Path("cmsRun.full.log")
+        code = run_cmsrun(command, log_path, job.get("logging", {}))
+        if code:
+            raise subprocess.CalledProcessError(code, command)
         entries = inspect_root(output, job["required_trees"])
-        diagnostics = [("FrameworkJobReport.xml", ".xml")]
+        with log_path.open("rb") as source, gzip.open("cmsRun.full.log.gz", "wb") as target:
+            shutil.copyfileobj(source, target)
+        diagnostics = [("FrameworkJobReport.xml", ".xml"), ("cmsRun.full.log.gz", ".log.gz")]
     if local_max_events is not None and not any(entries.values()):
         raise RuntimeError("No probe pairs in this local test; increase the event cap or check input/trigger/tag selection")
     report = dict(job, processed_max_events=events, entries=entries,
