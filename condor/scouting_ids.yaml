@@ -31,7 +31,7 @@ cmsrun:
   doPhoID: true
   doTrigger: false
   doRECO: false
-  scoutingElectronID: /eos/user/t/tihsu/dataset/scouting_id/electron/ID/export/scouting_id.json.gz
+  scoutingElectronID: /eos/user/t/tihsu/dataset/scouting_id/electron/ID_refit/scouting_id.json.gz
   scoutingPhotonID: /eos/user/t/tihsu/dataset/scouting_id/Release_Working_Points/Photon/CorrectionLib/scouting_id.json.gz
   scoutingTagWP: electron:Iso/WP70
 
