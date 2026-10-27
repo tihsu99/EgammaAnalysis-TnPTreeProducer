@@ -14,7 +14,10 @@ production:
   files_per_job: 30
   # Run each input separately, discard failed inputs, then merge good outputs in scratch.
   process_files_individually: true
-  # Only input open/read failures are skippable; configuration and output errors still fail.
+  # Optional workaround for remote-read crashes; full downloads add wall time.
+  stage_inputs_locally: false
+  stagein_attempts: 3
+  # Skip input open/read failures, including identified XRootD readv assertions.
   skip_bad_files: true
   max_events: -1
   # Accepts /eos/user/..., /eos/cms/..., or a full root://host//absolute/path URL.

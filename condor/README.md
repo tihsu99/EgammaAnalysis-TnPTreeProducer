@@ -84,6 +84,34 @@ The cap is only a local test override. It never edits the prepared production
 jobs, which retain `max_events: -1` by default. If you edit YAML settings or
 export new IDs, prepare a new farm and repeat the test.
 
+If a file runs successfully from local disk but crashes during remote reading,
+set `production.stage_inputs_locally: true` (default false). This requires
+`process_files_individually: true`. The worker downloads one input to scratch,
+runs `cmsRun` with a `file:` URL, and deletes that input before moving to the next.
+Only one downloaded input is retained at a time; intermediate ntuples and logs
+still need additional disk space. A full download precedes processing, even for
+a local test with an event cap. Benchmark a few jobs before enabling a campaign.
+Receipts retain the original remote URLs and per-file `stagein_bytes` and
+`stagein_seconds` for measuring this overhead.
+
+Downloads use `xrdcp --cksum adler32:print` because some AAA sources do not support
+checksum queries. This prints a local checksum without verifying it against the
+source; the receipt explicitly records `stagein_checksum_verified: false`.
+`production.stagein_attempts` defaults to 3. Exhausted download failures fail the
+job, even when `skip_bad_files` is enabled; they may reflect credentials, storage,
+or network errors rather than a bad physics input. Existing cmsRun failure rules
+and EOS stageout checksum verification are unchanged.
+
+With `production.skip_bad_files: true`, input open/read failures and the specific
+SIGABRT stack `__assert_fail -> XrdFile::readv -> RootDelayedReader::getProduct_`
+are blacklisted and processing continues with the next input. The latter is
+recorded as `XRootDReadvAssertion`, with the matching stack frames in its reason.
+The entire partial ntuple for that input is discarded; the remote input is not
+deleted. Successful inputs still merge normally. Other signals, assertions,
+configuration errors, and output errors remain fatal, and a job with no successful
+inputs fails without publishing a ROOT file. Prepare a new farm to snapshot this
+worker change; existing farms keep their original worker and checksums.
+
 ## Submit after the local test passes
 
 ```bash
@@ -111,9 +139,9 @@ The default `logging.stream_cmsrun: false` keeps full cmsRun output out of the
 submit host's `.out`/`.err` files. These retain file progress, exit codes, probe
 counts, blacklist summaries, stageout status, and at most
 `logging.failure_tail_bytes` (default 16384) of each failed cmsRun's transcript.
-The limit applies to each failure excerpt, not to the entire job log. Exceptions
-still fail the job, and bad-input classification uses the full scratch log and
-FrameworkJobReport as before.
+The limit applies to each failure excerpt, not to the entire job log. Non-skippable
+failures still fail the job; classification reads the last 64 KiB of the scratch
+log and the FrameworkJobReport, independently of the printed excerpt size.
 
 Full per-file logs and XML reports are kept in scratch and uploaded as
 `<output>.reports.tar.gz` when an individual-file job succeeds; blacklist details

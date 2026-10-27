@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
 import time
 import tarfile
@@ -94,11 +95,58 @@ def stage_out(source, destination, attempts):
         raise
 
 
+def stage_in(source, destination, attempts):
+    """Copy one input atomically; transfer failures must not silently remove events."""
+    partial = destination.with_suffix(".root.partial")
+    started = time.monotonic()
+    try:
+        for attempt in range(attempts):
+            partial.unlink(missing_ok=True)
+            print(f"Input download attempt {attempt + 1}/{attempts}: {source}", flush=True)
+            try:
+                # Some AAA sources cannot answer checksum queries; print is not verification.
+                run("xrdcp", "--nopbar", "--cksum", "adler32:print", source, partial)
+                break
+            except subprocess.CalledProcessError:
+                if attempt + 1 == attempts:
+                    raise
+                time.sleep(5 * (attempt + 1))
+        size = partial.stat().st_size
+        if not size:
+            raise RuntimeError("Downloaded input is empty: " + source)
+        partial.rename(destination)
+    except BaseException:
+        partial.unlink(missing_ok=True)
+        raise
+    elapsed = time.monotonic() - started
+    print(f"Input downloaded: {size} bytes in {elapsed:.1f}s; source checksum not verified", flush=True)
+    return dict(stagein_bytes=size, stagein_seconds=elapsed, stagein_checksum_verified=False)
+
+
+def xrd_readv_assertion(detail):
+    """Identify an assertion in XRootD vector reads of an input event."""
+    frames = []
+    for line in detail.splitlines():
+        # Require the assertion and input reader in one uninterrupted stack.
+        if not re.match(r"^#\d+\s", line):
+            frames = []
+            continue
+        frames.append(line)
+        if "edm::RootDelayedReader::getProduct_(" not in line:
+            continue
+        for assertion, caller in zip(frames, frames[1:]):
+            if (re.search(r"\b__assert_fail\s*\(", assertion)
+                    and "edm::storage::XrdFile::readv(" in caller):
+                return "\n".join((assertion, caller, line))
+    return ""
+
+
 def input_failure(report_path, log_path, returncode):
     """Classify the fatal exception, never just the truncated shell exit code."""
     with log_path.open("rb") as handle:
         handle.seek(max(0, log_path.stat().st_size - 65536))
         detail = handle.read().decode("utf-8", errors="replace")
+    readv_assertion = xrd_readv_assertion(detail) if returncode == -signal.SIGABRT else ""
     # Earlier warnings must not supply input context for an unrelated fatal error.
     marker = detail.rfind("----- Begin Fatal Exception")
     if marker >= 0:
@@ -115,6 +163,8 @@ def input_failure(report_path, log_path, returncode):
         detail += "\n" + text
     # FatalRootError is also used for output errors; require explicit input-source context.
     categories = set(categories)
+    if readv_assertion and categories <= {"UnexpectedJobTermination"}:
+        return dict(category="XRootDReadvAssertion", reason=readv_assertion, skippable=True)
     allowed = categories <= {"FileOpenError", "FileReadError"}
     if categories == {"FatalRootError"}:
         allowed = any(name in detail for name in ("InputSource::", "RootInputFileSequence::", "RootFile::read"))
@@ -128,6 +178,9 @@ def process_individually(job, events):
     reports, parts = Path("file_reports"), Path("file_outputs")
     reports.mkdir()
     parts.mkdir()
+    input_dir = Path("file_inputs") if job.get("stage_inputs_locally", False) else None
+    if input_dir is not None:
+        input_dir.mkdir()
     records, blacklist, good = [], [], []
     remaining = events
     total = len(job["input_files"])
@@ -140,11 +193,21 @@ def process_individually(job, events):
               f"({100 * index // total}%) | running {source}", flush=True)
         report_path = reports / f"input_{index:05d}.xml"
         log_path = reports / f"input_{index:05d}.log"
-        command = ["cmsRun", "-j", str(report_path), "TnPTreeProducer_cfg.py",
-                   *job["cmsrun_args"], "inputFiles=" + source, "maxEvents=" + str(remaining)]
-        code = run_cmsrun(command, log_path, job.get("logging", {}))
+        local_input = input_dir / f"input_{index:05d}.root" if input_dir is not None else None
+        transfer = {}
+        cmsrun_source = source
+        try:
+            if local_input is not None:
+                transfer = stage_in(source, local_input, job.get("stagein_attempts", 3))
+                cmsrun_source = "file:" + str(local_input.resolve())
+            command = ["cmsRun", "-j", str(report_path), "TnPTreeProducer_cfg.py",
+                       *job["cmsrun_args"], "inputFiles=" + cmsrun_source, "maxEvents=" + str(remaining)]
+            code = run_cmsrun(command, log_path, job.get("logging", {}))
+        finally:
+            if local_input is not None:
+                local_input.unlink(missing_ok=True)
         record = dict(input_file=source, returncode=code, max_events=remaining,
-                      framework_report=str(report_path), log=str(log_path))
+                      framework_report=str(report_path), log=str(log_path), **transfer)
         if code:
             failure = input_failure(report_path, log_path, code)
             record.update(failure)

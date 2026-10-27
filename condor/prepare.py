@@ -271,6 +271,12 @@ def prepare(config_path, farm_dir, selected=None):
         raise ValueError("process_files_individually and skip_bad_files must be YAML booleans")
     if skip_bad and not individual:
         raise ValueError("skip_bad_files requires process_files_individually")
+    stage_locally = production.get("stage_inputs_locally", False)
+    if type(stage_locally) is not bool:
+        raise ValueError("stage_inputs_locally must be a YAML boolean")
+    if stage_locally and not individual:
+        raise ValueError("stage_inputs_locally requires process_files_individually")
+    stagein_attempts = positive(production.get("stagein_attempts", 3), "production.stagein_attempts")
     logging = config.get("logging", {})
     if not isinstance(logging, dict):
         raise ValueError("logging must be a YAML mapping")
@@ -305,6 +311,7 @@ def prepare(config_path, farm_dir, selected=None):
                 jobs.append(dict(job_id=job_id, sample=name, dataset=sample.get("dataset"),
                                  input_files=files[start:start + count], max_events=events,
                                  process_files_individually=individual, skip_bad_files=skip_bad,
+                                 stage_inputs_locally=stage_locally, stagein_attempts=stagein_attempts,
                                  logging=logging,
                                  cmsrun_args=[f"{key}={value}" for key, value in arguments.items()],
                                  root_filename="TnPTree_{}.root".format("mc" if arguments["isMC"] else "data"),
