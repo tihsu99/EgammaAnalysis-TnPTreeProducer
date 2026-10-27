@@ -11,7 +11,7 @@ input:
   das_instance: prod/global
 
 production:
-  files_per_job: 50
+  files_per_job: 30
   # Run each input separately, discard failed inputs, then merge good outputs in scratch.
   process_files_individually: true
   # Only input open/read failures are skippable; configuration and output errors still fail.
